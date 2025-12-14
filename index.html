@@ -8085,30 +8085,6 @@
         closeModal("earn");
       }
 
-      function confirmRepair() {
-        if (REPAIR_COST > money) {
-          alert(
-            translations[currentLang].notEnoughMoney ||
-              "Nie masz wystarczająco pieniędzy!"
-          );
-          return;
-        }
-
-        if (spent + REPAIR_COST > limit) {
-          pendingAction = "repair";
-          closeModal("repair");
-          openModal("limitExceeded");
-          return;
-        }
-
-        money -= REPAIR_COST;
-        spent += REPAIR_COST;
-        saveState();
-        updateAllDisplays();
-        alert(`🔧 -5,000 ${getCurrency()}`);
-        closeModal("repair");
-      }
-
       // ==================== PODATKI ====================
       function checkMissedTaxes() {
         const now = Date.now();
