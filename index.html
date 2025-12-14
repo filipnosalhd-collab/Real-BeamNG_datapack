@@ -9211,88 +9211,22 @@
           return;
         }
 
-        // Sprawdź czy już wysłano zaproszenie
-        if (data.notifications && data.notifications[friendName]) {
-          const pending = data.notifications[friendName].find(
-            (n) =>
-              n.type === "friendRequest" && n.from === playerName && !n.read
-          );
-          if (pending) {
-            showToast("ℹ️ Zaproszenie już wysłane");
-            return;
-          }
-        }
-
-        // Wyślij zaproszenie do znajomych
-        await sendNotification(friendName, {
-          type: "friendRequest",
-          from: playerName,
-          message: `${playerName} chce dodać Cię do znajomych!`,
-        });
-
-        showToast(`📤 Wysłano zaproszenie do ${friendName}`);
-        input.value = "";
-      }
-
-      async function acceptFriendRequest(notifId, fromPlayer) {
-        const data = await getOnlineData();
-
-        // Dodaj do znajomych u obu graczy
+        // Dodaj do znajomych u obu graczy od razu
         if (!data.players[playerName].friends)
           data.players[playerName].friends = [];
-        if (!data.players[fromPlayer].friends)
-          data.players[fromPlayer].friends = [];
+        if (!data.players[friendName].friends)
+          data.players[friendName].friends = [];
 
-        if (!data.players[playerName].friends.includes(fromPlayer)) {
-          data.players[playerName].friends.push(fromPlayer);
-        }
-        if (!data.players[fromPlayer].friends.includes(playerName)) {
-          data.players[fromPlayer].friends.push(playerName);
-        }
-
-        // Oznacz powiadomienie jako przeczytane
-        if (data.notifications[playerName]) {
-          const notif = data.notifications[playerName].find(
-            (n) => n.id === notifId
-          );
-          if (notif) notif.read = true;
+        data.players[playerName].friends.push(friendName);
+        if (!data.players[friendName].friends.includes(playerName)) {
+          data.players[friendName].friends.push(playerName);
         }
 
         await saveOnlineData(data);
 
-        // Wyślij potwierdzenie
-        await sendNotification(fromPlayer, {
-          type: "friendAccepted",
-          from: playerName,
-          message: `${playerName} zaakceptował Twoje zaproszenie!`,
-        });
-
-        showToast(`✅ ${fromPlayer} dodany do znajomych!`);
-        renderNotifications();
-      }
-
-      async function rejectFriendRequest(notifId, fromPlayer) {
-        const data = await getOnlineData();
-
-        // Oznacz powiadomienie jako przeczytane
-        if (data.notifications[playerName]) {
-          const notif = data.notifications[playerName].find(
-            (n) => n.id === notifId
-          );
-          if (notif) notif.read = true;
-        }
-
-        await saveOnlineData(data);
-
-        // Wyślij info o odrzuceniu
-        await sendNotification(fromPlayer, {
-          type: "friendRejected",
-          from: playerName,
-          message: `${playerName} odrzucił Twoje zaproszenie`,
-        });
-
-        showToast(`❌ Zaproszenie odrzucone`);
-        renderNotifications();
+        showToast(`✅ Dodano ${friendName} do znajomych!`);
+        input.value = "";
+        renderOnlineAccount();
       }
 
       async function removeFriend(friendName) {
