@@ -4312,9 +4312,9 @@
         });
         upgradeIntervals = {};
 
-        // Załaduj dane wspólne (karta, PIN, limit, autoPay, lastTaxTime)
+        // Załaduj dane wspólne (limit, autoPay, lastTaxTime)
+        // cardCode jest globalny dla urządzenia - nie ładuj z save
         const d = save.data;
-        cardCode = d.cardCode || generateCardCodeSync();
         pin = cardCode;
         limit = d.limit || 10000;
         autoPay = d.autoPay || false;
@@ -4360,8 +4360,7 @@
         const save = getCurrentSave();
         if (!save) return;
 
-        // Zapisz dane wspólne
-        save.data.cardCode = cardCode;
+        // Zapisz dane wspólne (cardCode jest globalny w localStorage)
         save.data.limit = limit;
         save.data.autoPay = autoPay;
         save.data.lastTaxTime = lastTaxTime;
@@ -4737,7 +4736,12 @@
 
       // ==================== STAN GRY ====================
       let money = 1500;
-      let cardCode = generateCardCodeSync();
+      // Kod karty - globalny dla urządzenia (nie per save)
+      let cardCode = localStorage.getItem("beamng_device_card_code");
+      if (!cardCode) {
+        cardCode = generateCardCodeSync();
+        localStorage.setItem("beamng_device_card_code", cardCode);
+      }
       let pin = cardCode;
       let limit = 10000;
       let spent = 0;
@@ -7139,6 +7143,8 @@
         const password = document.getElementById("loginPassword").value;
         hideLoginError();
 
+        console.log("Rejestracja:", name);
+
         if (name.length < 2) {
           showLoginError("Nazwa musi mieć min. 2 znaki");
           return;
@@ -7152,52 +7158,58 @@
           return;
         }
 
-        const data = await getOnlineData();
-        if (!data.players) data.players = {};
+        try {
+          const data = await getOnlineData();
+          console.log("Dane z serwera:", data);
+          if (!data.players) data.players = {};
 
-        // Sprawdź czy nazwa jest zajęta
-        if (data.players[name]) {
-          showLoginError("Ta nazwa jest już zajęta!");
-          return;
-        }
+          // Sprawdź czy nazwa jest zajęta
+          if (data.players[name]) {
+            showLoginError("Ta nazwa jest już zajęta!");
+            return;
+          }
 
-        // Pobierz numer karty i sprawdź unikalność
-        const save = getCurrentSave();
-        let cardNum = save?.data?.cardCode || null;
+          // Pobierz globalny numer karty (ten sam dla całego urządzenia)
+          let cardNum = cardCode;
 
-        // Sprawdź czy numer karty jest unikalny
-        if (cardNum) {
+          // Sprawdź czy numer karty jest unikalny na serwerze
+          let needNewCard = false;
           for (const [pName, player] of Object.entries(data.players)) {
             if (player.cardNumber === cardNum) {
-              // Numer zajęty - wygeneruj nowy unikalny
-              cardNum = await generateCardCode();
-              // Zapisz nowy numer w save
-              if (save && save.data) {
-                save.data.cardCode = cardNum;
-                cardCode = cardNum;
-                saveSaveData();
-              }
+              needNewCard = true;
               break;
             }
           }
+
+          // Jeśli zajęty - wygeneruj nowy i zapisz globalnie
+          if (needNewCard) {
+            cardNum = generateCardCodeSync();
+            cardCode = cardNum;
+            localStorage.setItem("beamng_device_card_code", cardCode);
+          }
+
+          // Zarejestruj gracza
+          playerName = name;
+          localStorage.setItem("beamng_player_name", playerName);
+
+          data.players[playerName] = {
+            passwordHash: hashPassword(password),
+            displayName: name,
+            cardNumber: cardNum,
+            registeredAt: Date.now(),
+            online: true,
+            lastSeen: Date.now(),
+            gameMode: gameMode,
+          };
+
+          console.log("Zapisuję gracza:", data.players[playerName]);
+          await saveOnlineData(data);
+
+          finishLogin();
+        } catch (e) {
+          console.error("Błąd rejestracji:", e);
+          showLoginError("Błąd połączenia z serwerem");
         }
-
-        // Zarejestruj gracza
-        playerName = name;
-        localStorage.setItem("beamng_player_name", playerName);
-
-        data.players[playerName] = {
-          passwordHash: hashPassword(password),
-          displayName: name,
-          cardNumber: cardNum,
-          registeredAt: Date.now(),
-          online: true,
-          lastSeen: Date.now(),
-          gameMode: gameMode,
-        };
-        await saveOnlineData(data);
-
-        finishLogin();
       }
 
       async function loginPlayer() {
@@ -7205,35 +7217,44 @@
         const password = document.getElementById("loginPassword").value;
         hideLoginError();
 
+        console.log("Logowanie:", name);
+
         if (!name || !password) {
           showLoginError("Wpisz nazwę i hasło");
           return;
         }
 
-        const data = await getOnlineData();
-        if (!data.players || !data.players[name]) {
-          showLoginError("Nie znaleziono gracza o tej nazwie");
-          return;
+        try {
+          const data = await getOnlineData();
+          console.log("Dane z serwera:", data);
+
+          if (!data.players || !data.players[name]) {
+            showLoginError("Nie znaleziono gracza o tej nazwie");
+            return;
+          }
+
+          const player = data.players[name];
+
+          // Sprawdź hasło
+          if (player.passwordHash !== hashPassword(password)) {
+            showLoginError("Błędne hasło!");
+            return;
+          }
+
+          // Zaloguj
+          playerName = name;
+          localStorage.setItem("beamng_player_name", playerName);
+
+          // Aktualizuj status
+          data.players[playerName].online = true;
+          data.players[playerName].lastSeen = Date.now();
+          await saveOnlineData(data);
+
+          finishLogin();
+        } catch (e) {
+          console.error("Błąd logowania:", e);
+          showLoginError("Błąd połączenia z serwerem");
         }
-
-        const player = data.players[name];
-
-        // Sprawdź hasło
-        if (player.passwordHash !== hashPassword(password)) {
-          showLoginError("Błędne hasło!");
-          return;
-        }
-
-        // Zaloguj
-        playerName = name;
-        localStorage.setItem("beamng_player_name", playerName);
-
-        // Aktualizuj status
-        data.players[playerName].online = true;
-        data.players[playerName].lastSeen = Date.now();
-        await saveOnlineData(data);
-
-        finishLogin();
       }
 
       function finishLogin() {
@@ -7364,13 +7385,10 @@
         if (!playerName) return;
         const data = await getOnlineData();
         if (data.players && data.players[playerName]) {
-          const save = getCurrentSave();
-          const cardNum = save?.data?.cardCode || null;
-
           data.players[playerName].online = true;
           data.players[playerName].lastSeen = Date.now();
           data.players[playerName].gameMode = gameMode;
-          if (cardNum) data.players[playerName].cardNumber = cardNum;
+          data.players[playerName].cardNumber = cardCode;
           await saveOnlineData(data);
         }
       }
@@ -9079,8 +9097,7 @@
                 `;
         } else {
           const friends = await getFriends();
-          const save = getCurrentSave();
-          const myCardNumber = save?.data?.cardCode || "---";
+          const myCardNumber = cardCode || "---";
 
           content.innerHTML = `
                     <div style="text-align:center;margin-bottom:20px;">
