@@ -1068,6 +1068,46 @@
         <div class="header-btns-right">
           <button
             class="lang-btn"
+            onclick="openModal('notifications')"
+            title="Powiadomienia"
+            style="position: relative"
+          >
+            🔔
+            <span
+              id="notificationBadge"
+              style="
+                display: none;
+                position: absolute;
+                top: -5px;
+                right: -5px;
+                background: #ef4444;
+                color: white;
+                font-size: 0.6em;
+                padding: 2px 5px;
+                border-radius: 10px;
+                min-width: 15px;
+                text-align: center;
+              "
+              >0</span
+            >
+          </button>
+          <button
+            class="lang-btn"
+            onclick="openModal('auction')"
+            title="Aukcje"
+          >
+            🏪
+          </button>
+          <button
+            class="lang-btn"
+            onclick="openModal('onlineAccount')"
+            title="Konto online"
+            id="onlineAccountBtn"
+          >
+            👤
+          </button>
+          <button
+            class="lang-btn"
             onclick="openModal('language')"
             title="Język"
           >
@@ -2487,9 +2527,26 @@
           <button class="pin-key confirm" onclick="confirmPin()">✓</button>
         </div>
 
+        <div id="forgotPinBtnContainer" style="display: none; margin-top: 10px">
+          <button
+            onclick="forgotPinAuction()"
+            style="
+              width: 100%;
+              padding: 12px;
+              background: #f59e0b;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+            "
+          >
+            ❓ <span data-translate="forgotPin">Nie pamiętam PIN</span>
+          </button>
+        </div>
+
         <button
           class="modal-close"
-          onclick="closeModal('pin'); pendingAction = null;"
+          onclick="closeModal('pin'); pendingAction = null; pendingAuctionId = null;"
           data-translate="cancel"
         >
           Anuluj
@@ -2850,6 +2907,113 @@
       </div>
     </div>
 
+    <!-- Modal Konto Online -->
+    <div class="modal" id="modalOnlineAccount">
+      <div class="modal-content" style="max-width: 400px">
+        <span class="close" onclick="closeModal('onlineAccount')">&times;</span>
+        <h2>👤 <span data-translate="onlineAccount">Konto Online</span></h2>
+        <div id="onlineAccountContent"></div>
+      </div>
+    </div>
+
+    <!-- Modal Powiadomienia -->
+    <div class="modal" id="modalNotifications">
+      <div class="modal-content" style="max-width: 500px">
+        <span class="close" onclick="closeModal('notifications')">&times;</span>
+        <h2>🔔 <span data-translate="notifications">Powiadomienia</span></h2>
+        <div
+          id="notificationsList"
+          style="max-height: 400px; overflow-y: auto"
+        ></div>
+      </div>
+    </div>
+
+    <!-- Modal Aukcje -->
+    <div class="modal" id="modalAuction">
+      <div class="modal-content" style="max-width: 600px">
+        <span class="close" onclick="closeModal('auction')">&times;</span>
+        <h2>🏪 <span data-translate="auctionHouse">Dom Aukcyjny</span></h2>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px">
+          <button
+            onclick="showAuctionTab('browse')"
+            class="tab-btn active"
+            id="tabBrowse"
+            style="
+              flex: 1;
+              padding: 10px;
+              background: #333;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+            "
+          >
+            🔍 <span data-translate="browseAuctions">Przeglądaj</span>
+          </button>
+          <button
+            onclick="showAuctionTab('my')"
+            class="tab-btn"
+            id="tabMy"
+            style="
+              flex: 1;
+              padding: 10px;
+              background: #222;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+            "
+          >
+            📦 <span data-translate="myAuctions">Moje</span>
+          </button>
+          <button
+            onclick="showAuctionTab('create')"
+            class="tab-btn"
+            id="tabCreate"
+            style="
+              flex: 1;
+              padding: 10px;
+              background: #222;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+            "
+          >
+            ➕ <span data-translate="createAuction">Wystaw</span>
+          </button>
+        </div>
+        <div
+          id="auctionContent"
+          style="max-height: 400px; overflow-y: auto"
+        ></div>
+      </div>
+    </div>
+
+    <!-- Modal Szczegóły Aukcji -->
+    <div class="modal" id="modalAuctionDetail">
+      <div class="modal-content" style="max-width: 450px">
+        <span class="close" onclick="closeModal('auctionDetail')">&times;</span>
+        <div id="auctionDetailContent"></div>
+      </div>
+    </div>
+
+    <!-- Modal Wyślij do gracza online -->
+    <div class="modal" id="modalSendToPlayer">
+      <div class="modal-content" style="max-width: 400px">
+        <span class="close" onclick="closeModal('sendToPlayer')">&times;</span>
+        <h2>📤 <span data-translate="sendToPlayer">Wyślij do gracza</span></h2>
+        <p style="color: #f59e0b; font-size: 0.9em; margin-bottom: 15px">
+          ⚠️
+          <span data-translate="onlineFee">Opłata: 250</span> ${getCurrency()}
+        </p>
+        <div
+          id="onlinePlayersList"
+          style="max-height: 300px; overflow-y: auto"
+        ></div>
+      </div>
+    </div>
+
     <!-- Modal Podgląd Bonu -->
     <div class="modal" id="modalVoucherPreview">
       <div class="modal-content">
@@ -3168,13 +3332,104 @@
           pendingVoucher: "Wysłano - oczekuje",
           cancelVoucherConfirm: "Anulować bon?",
           voucherAlreadyUsed: "Ten bon został już wykorzystany!",
-          voucherExpired:
-            "Ten link wygasł! Bony są ważne tylko 10 minut od wysłania.",
+          voucherExpired: "Czas minął! Link wygasł.",
+          voucherNotFound: "Nie znaleziono bonu!",
+          voucherCancelled: "Ten bon został anulowany przez nadawcę.",
+          cancelAndRefund: "Anuluj (zwrot dla nadawcy)",
+          cancelled: "anulowany",
+          refundToSender: "Zwrot dla nadawcy",
+          // System online
+          onlineAccount: "Konto Online",
+          notifications: "Powiadomienia",
+          auctionHouse: "Dom Aukcyjny",
+          browseAuctions: "Przeglądaj",
+          myAuctions: "Moje",
+          createAuction: "Wystaw",
+          chooseNameAndPin: "Wybierz nazwę i PIN (4 cyfry)",
+          playerName: "Nazwa gracza",
+          register: "Zarejestruj się",
+          login: "Zaloguj się",
+          logout: "Wyloguj",
+          onlinePlayers: "Gracze online",
+          noPlayersOnline: "Brak graczy online",
+          nameTooShort: "Nazwa musi mieć min. 2 znaki",
+          pinMustBe4: "PIN musi mieć 4 cyfry",
+          nameTaken: "Ta nazwa jest już zajęta!",
+          registered: "Zarejestrowano!",
+          welcome: "Witaj",
+          loggedIn: "Zalogowano!",
+          playerNotFound: "Nie znaleziono gracza",
+          wrongPin: "Błędny PIN!",
+          loginFirst: "Najpierw się zaloguj",
+          noNotifications: "Brak powiadomień",
+          sentYouVoucher: "wysłał Ci bon",
+          bidOn: "zalicytował",
+          wantsToNegotiate: "chce negocjować",
+          yourOfferAccepted: "Twoja oferta zaakceptowana!",
+          yourOfferRejected: "Twoja oferta odrzucona",
+          seller: "Sprzedawca",
+          price: "Cena",
+          buyNow: "Kup teraz",
+          negotiate: "Negocjuj",
+          noAuctions: "Brak aukcji",
+          noMyAuctions: "Nie masz wystawionych przedmiotów",
+          nothingToSell: "Nie masz nic do wystawienia",
+          selectToSell: "Wybierz co chcesz wystawić:",
+          enterPrice: "Podaj cenę:",
+          invalidPrice: "Nieprawidłowa cena",
+          auctionCreated: "Wystawiono!",
+          enterYourOffer: "Podaj swoją ofertę:",
+          offerSent: "Wysłano ofertę!",
+          purchaseSuccess: "Zakup udany!",
+          waitingForSeller: "Czekaj na odpowiedź sprzedawcy...",
+          enterPin: "Wpisz PIN",
+          forgotPin: "Nie pamiętam",
+          allow: "Pozwól",
+          deny: "Odmów",
+          buyerForgotPin: "Kupujący nie pamięta PIN",
+          allowedWithoutPin: "pozwolił kupić bez PIN",
+          deniedWithoutPin: "nie pozwolił kupić bez PIN",
+          counterOffer: "kontr-oferta",
+          enterCounterOffer: "Podaj kontr-ofertę:",
+          negotiations: "negocjacji",
+          boughtYourItem: "kupił Twój przedmiot",
+          sendToPlayer: "Wyślij do gracza",
+          onlineFee: "Opłata: 250",
+          // Aukcje pakietowe
+          selectItemsToSell: "Zaznacz co chcesz wystawić:",
+          cars: "Auta",
+          food: "Jedzenie",
+          customInsurance: "Własne ubezpieczenie",
+          createInsurance: "Stwórz ubezpieczenie",
+          selectedItems: "Wybrane",
+          totalPrice: "Cena za pakiet",
+          listForSale: "Wystaw na sprzedaż",
+          noCars: "Brak aut",
+          noFood: "Brak jedzenia",
+          selectSomething: "Wybierz coś do wystawienia!",
+          insuranceName: "Nazwa ubezpieczenia",
+          myInsurance: "Moje ubezpieczenie",
+          whatItGives: "Co daje",
+          coveragePercent: "Pokrycie napraw",
+          paymentInterval: "Opłata co ile minut",
+          paymentAmount: "Kwota opłaty",
+          add: "Dodaj",
+          contents: "Zawartość",
+          creationCost: "Koszt stworzenia",
+          auctionSummary: "Podsumowanie",
+          sellingPrice: "Cena sprzedaży",
+          youPay: "Płacisz",
+          confirmListing: "Wystawić?",
+          cost: "Koszt",
+          confirmCancelAuction: "Anulować aukcję? Przedmioty wrócą do Ciebie.",
+          notYourAuction: "To nie Twoja aukcja!",
+          auctionCancelled: "Aukcja anulowana!",
+          repairs: "napraw",
           cantReceiveOwnVoucher: "Nie możesz odebrać własnego bonu!",
           sent: "wysłany",
           total: "łącznie",
           shippingFee: "opłata za przesyłkę",
-          shippingInfo: "Wysyłka online: +100 zł | Link jednorazowy!",
+          shippingInfo: "Online: +100 zł | 30 sek od otwarcia!",
           noShippingFee: "Bez opłaty za przesyłkę",
           // Logowanie
           loginTitle: "Zaloguj się",
@@ -3551,13 +3806,105 @@
           pendingVoucher: "Sent - waiting",
           cancelVoucherConfirm: "Cancel voucher?",
           voucherAlreadyUsed: "This voucher has already been used!",
-          voucherExpired:
-            "This link has expired! Vouchers are valid for 10 minutes only.",
+          voucherExpired: "Time's up! Link expired.",
+          voucherNotFound: "Voucher not found!",
+          voucherCancelled: "This voucher was cancelled by the sender.",
+          cancelAndRefund: "Cancel (refund to sender)",
+          cancelled: "cancelled",
+          refundToSender: "Refund to sender",
+          // Online system
+          onlineAccount: "Online Account",
+          notifications: "Notifications",
+          auctionHouse: "Auction House",
+          browseAuctions: "Browse",
+          myAuctions: "My auctions",
+          createAuction: "Create",
+          chooseNameAndPin: "Choose name and PIN (4 digits)",
+          playerName: "Player name",
+          register: "Register",
+          login: "Log in",
+          logout: "Log out",
+          onlinePlayers: "Players online",
+          noPlayersOnline: "No players online",
+          nameTooShort: "Name must be at least 2 characters",
+          pinMustBe4: "PIN must be 4 digits",
+          nameTaken: "This name is already taken!",
+          registered: "Registered!",
+          welcome: "Welcome",
+          loggedIn: "Logged in!",
+          playerNotFound: "Player not found",
+          wrongPin: "Wrong PIN!",
+          loginFirst: "Log in first",
+          noNotifications: "No notifications",
+          sentYouVoucher: "sent you a voucher",
+          bidOn: "bid on",
+          wantsToNegotiate: "wants to negotiate",
+          yourOfferAccepted: "Your offer was accepted!",
+          yourOfferRejected: "Your offer was rejected",
+          seller: "Seller",
+          price: "Price",
+          buyNow: "Buy now",
+          negotiate: "Negotiate",
+          noAuctions: "No auctions",
+          noMyAuctions: "You have no listed items",
+          nothingToSell: "Nothing to sell",
+          selectToSell: "Select item to sell:",
+          enterPrice: "Enter price:",
+          invalidPrice: "Invalid price",
+          auctionCreated: "Listed!",
+          enterYourOffer: "Enter your offer:",
+          offerSent: "Offer sent!",
+          purchaseSuccess: "Purchase successful!",
+          waitingForSeller: "Waiting for seller response...",
+          enterPin: "Enter PIN",
+          forgotPin: "Forgot PIN",
+          allow: "Allow",
+          deny: "Deny",
+          buyerForgotPin: "Buyer forgot PIN",
+          allowedWithoutPin: "allowed purchase without PIN",
+          deniedWithoutPin: "denied purchase without PIN",
+          counterOffer: "counter-offer",
+          enterCounterOffer: "Enter counter-offer:",
+          negotiations: "negotiations",
+          boughtYourItem: "bought your item",
+          sendToPlayer: "Send to player",
+          onlineFee: "Fee: 250",
+          // Package auctions
+          selectItemsToSell: "Select items to sell:",
+          cars: "Cars",
+          food: "Food",
+          customInsurance: "Custom insurance",
+          createInsurance: "Create insurance",
+          selectedItems: "Selected",
+          totalPrice: "Package price",
+          listForSale: "List for sale",
+          noCars: "No cars",
+          noFood: "No food",
+          selectSomething: "Select something to sell!",
+          insuranceName: "Insurance name",
+          myInsurance: "My insurance",
+          whatItGives: "What it gives",
+          coveragePercent: "Repair coverage",
+          paymentInterval: "Payment every X minutes",
+          paymentAmount: "Payment amount",
+          add: "Add",
+          contents: "Contents",
+          creationCost: "Creation cost",
+          auctionSummary: "Summary",
+          sellingPrice: "Selling price",
+          youPay: "You pay",
+          confirmListing: "List it?",
+          cost: "Cost",
+          confirmCancelAuction:
+            "Cancel auction? Items will be returned to you.",
+          notYourAuction: "This is not your auction!",
+          auctionCancelled: "Auction cancelled!",
+          repairs: "repairs",
           cantReceiveOwnVoucher: "You cannot receive your own voucher!",
           sent: "sent",
           total: "total",
           shippingFee: "shipping fee",
-          shippingInfo: "Online: +100 fee | One-time link!",
+          shippingInfo: "Online: +100 fee | 30 sec from opening!",
           noShippingFee: "No shipping fee",
           // Login
           loginTitle: "Log in",
@@ -6135,7 +6482,7 @@
         return `🎁 ${genderMsg} ${voucher.amount.toLocaleString()} ${getCurrency()}!\n\n`;
       }
 
-      function shareVoucherVia(method) {
+      async function shareVoucherVia(method) {
         if (!currentVoucherToShare) return;
 
         const v = currentVoucherToShare.voucher;
@@ -6146,6 +6493,19 @@
 
         const SHIPPING_FEE = 100; // Opłata za przesyłkę bonu
         const totalCost = v.amount + SHIPPING_FEE;
+
+        // Pokaż ładowanie
+        const loadingMsg = currentLang === "pl" ? "Wysyłanie..." : "Sending...";
+
+        // Zapisz bon online do JSONBin
+        await saveVoucherOnline({
+          id: v.id,
+          amount: v.amount,
+          message: v.message,
+          fromSave: v.fromSave,
+          fromSaveId: v.fromSaveId,
+          gameMode: voucherMode,
+        });
 
         // ONLINE - od razu odejmij pieniądze (wartość bonu + opłata za przesyłkę)
         const modeKey =
@@ -6340,7 +6700,501 @@
       }
 
       // Sprawdź czy w URL jest bon do odebrania
-      // Lista wykorzystanych bonów (zapisywana w localStorage)
+      // ==================== SYSTEM ONLINE (JSONBin) ====================
+      const JSONBIN_BIN_ID = "693ea98843b1c97be9ed8459";
+      const JSONBIN_API_KEY =
+        "$2a$10$fXr.ZSgHBnYW.kI0UpbwY.7yZXQwBib7fJLjT4oqgPKG/gZO2aKXy";
+      const VOUCHER_EXPIRY_SECONDS = 30;
+      const ONLINE_SEND_FEE = 250; // Opłata za wysłanie do gracza online
+      const LINK_SEND_FEE = 100; // Opłata za wysłanie linkiem
+
+      let playerName = localStorage.getItem("beamng_player_name") || null;
+      let playerPin = localStorage.getItem("beamng_player_pin") || null;
+      let lastNotificationCheck = 0;
+      let unreadNotifications = 0;
+
+      // ========== PODSTAWOWE FUNKCJE API ==========
+      async function getOnlineData() {
+        try {
+          const response = await fetch(
+            `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,
+            {
+              headers: { "X-Master-Key": JSONBIN_API_KEY },
+            }
+          );
+          const data = await response.json();
+          return (
+            data.record || {
+              vouchers: {},
+              players: {},
+              auctions: {},
+              notifications: {},
+              shop: { lastReset: 0, items: {} },
+            }
+          );
+        } catch (e) {
+          return {
+            vouchers: {},
+            players: {},
+            auctions: {},
+            notifications: {},
+            shop: { lastReset: 0, items: {} },
+          };
+        }
+      }
+
+      async function saveOnlineData(data) {
+        try {
+          await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Master-Key": JSONBIN_API_KEY,
+            },
+            body: JSON.stringify(data),
+          });
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      // ========== SYSTEM GRACZY ==========
+      async function registerPlayer(name, pin) {
+        const data = await getOnlineData();
+        if (!data.players) data.players = {};
+
+        // Sprawdź czy nazwa zajęta
+        if (data.players[name]) {
+          return { success: false, error: "nameTaken" };
+        }
+
+        data.players[name] = {
+          pin: pin,
+          online: true,
+          lastSeen: Date.now(),
+          gameMode: gameMode,
+        };
+
+        await saveOnlineData(data);
+        playerName = name;
+        playerPin = pin;
+        localStorage.setItem("beamng_player_name", name);
+        localStorage.setItem("beamng_player_pin", pin);
+        return { success: true };
+      }
+
+      async function loginPlayer(name, pin) {
+        const data = await getOnlineData();
+        if (!data.players || !data.players[name]) {
+          return { success: false, error: "notFound" };
+        }
+        if (data.players[name].pin !== pin) {
+          return { success: false, error: "wrongPin" };
+        }
+
+        data.players[name].online = true;
+        data.players[name].lastSeen = Date.now();
+        data.players[name].gameMode = gameMode;
+        await saveOnlineData(data);
+
+        playerName = name;
+        playerPin = pin;
+        localStorage.setItem("beamng_player_name", name);
+        localStorage.setItem("beamng_player_pin", pin);
+        return { success: true };
+      }
+
+      async function updatePlayerStatus() {
+        if (!playerName) return;
+        const data = await getOnlineData();
+        if (data.players && data.players[playerName]) {
+          data.players[playerName].online = true;
+          data.players[playerName].lastSeen = Date.now();
+          data.players[playerName].gameMode = gameMode;
+          await saveOnlineData(data);
+        }
+      }
+
+      async function getOnlinePlayers() {
+        const data = await getOnlineData();
+        if (!data.players) return [];
+        const now = Date.now();
+        const ONLINE_TIMEOUT = 2 * 60 * 1000; // 2 minuty
+        return Object.entries(data.players)
+          .filter(
+            ([name, p]) =>
+              p.online &&
+              now - p.lastSeen < ONLINE_TIMEOUT &&
+              name !== playerName
+          )
+          .map(([name, p]) => ({ name, gameMode: p.gameMode }));
+      }
+
+      // ========== SYSTEM BONÓW ==========
+      async function getOnlineVouchers() {
+        const data = await getOnlineData();
+        return data.vouchers || {};
+      }
+
+      async function saveVoucherOnline(voucher) {
+        const data = await getOnlineData();
+        if (!data.vouchers) data.vouchers = {};
+        data.vouchers[voucher.id] = {
+          amount: voucher.amount,
+          message: voucher.message || "",
+          fromPlayer: playerName,
+          fromSaveId: voucher.fromSaveId,
+          toPlayer: voucher.toPlayer || null,
+          gameMode: voucher.gameMode,
+          sentAt: Date.now(),
+          firstOpenedAt: null,
+          status: "pending",
+        };
+        await saveOnlineData(data);
+      }
+
+      async function checkVoucherOnline(voucherId) {
+        const data = await getOnlineData();
+        return data.vouchers ? data.vouchers[voucherId] : null;
+      }
+
+      async function markVoucherOpened(voucherId) {
+        const data = await getOnlineData();
+        if (
+          data.vouchers &&
+          data.vouchers[voucherId] &&
+          !data.vouchers[voucherId].firstOpenedAt
+        ) {
+          data.vouchers[voucherId].firstOpenedAt = Date.now();
+          data.vouchers[voucherId].status = "opened";
+          await saveOnlineData(data);
+        }
+        return data.vouchers ? data.vouchers[voucherId] : null;
+      }
+
+      async function markVoucherUsedOnline(voucherId) {
+        const data = await getOnlineData();
+        if (data.vouchers && data.vouchers[voucherId]) {
+          data.vouchers[voucherId].status = "used";
+          data.vouchers[voucherId].usedAt = Date.now();
+          await saveOnlineData(data);
+        }
+      }
+
+      async function cancelVoucherOnline(voucherId) {
+        const data = await getOnlineData();
+        if (data.vouchers && data.vouchers[voucherId]) {
+          data.vouchers[voucherId].status = "cancelled";
+          data.vouchers[voucherId].cancelledAt = Date.now();
+          await saveOnlineData(data);
+          return data.vouchers[voucherId];
+        }
+        return null;
+      }
+
+      // ========== SYSTEM POWIADOMIEŃ ==========
+      async function sendNotification(toPlayer, notification) {
+        const data = await getOnlineData();
+        if (!data.notifications) data.notifications = {};
+        if (!data.notifications[toPlayer]) data.notifications[toPlayer] = [];
+
+        notification.id =
+          "notif_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6);
+        notification.timestamp = Date.now();
+        notification.read = false;
+
+        data.notifications[toPlayer].push(notification);
+        await saveOnlineData(data);
+      }
+
+      async function getMyNotifications() {
+        if (!playerName) return [];
+        const data = await getOnlineData();
+        return data.notifications && data.notifications[playerName]
+          ? data.notifications[playerName]
+          : [];
+      }
+
+      async function markNotificationRead(notifId) {
+        const data = await getOnlineData();
+        if (data.notifications && data.notifications[playerName]) {
+          const notif = data.notifications[playerName].find(
+            (n) => n.id === notifId
+          );
+          if (notif) notif.read = true;
+          await saveOnlineData(data);
+        }
+      }
+
+      async function removeNotification(notifId) {
+        const data = await getOnlineData();
+        if (data.notifications && data.notifications[playerName]) {
+          data.notifications[playerName] = data.notifications[
+            playerName
+          ].filter((n) => n.id !== notifId);
+          await saveOnlineData(data);
+        }
+      }
+
+      async function checkNotifications() {
+        if (!playerName) return;
+        const notifs = await getMyNotifications();
+        unreadNotifications = notifs.filter((n) => !n.read).length;
+        updateNotificationBadge();
+      }
+
+      function updateNotificationBadge() {
+        const badge = document.getElementById("notificationBadge");
+        if (badge) {
+          badge.textContent = unreadNotifications;
+          badge.style.display = unreadNotifications > 0 ? "flex" : "none";
+        }
+      }
+
+      // ========== SYSTEM AUKCJI ==========
+      async function createAuction(item) {
+        const data = await getOnlineData();
+        if (!data.auctions) data.auctions = {};
+
+        const auctionId =
+          "auction_" +
+          Date.now() +
+          "_" +
+          Math.random().toString(36).substr(2, 6);
+        data.auctions[auctionId] = {
+          seller: playerName,
+          item: item,
+          price: item.price,
+          createdAt: Date.now(),
+          status: "active",
+          bids: [],
+          negotiations: [],
+        };
+        await saveOnlineData(data);
+        return auctionId;
+      }
+
+      async function getActiveAuctions() {
+        const data = await getOnlineData();
+        if (!data.auctions) return [];
+        return Object.entries(data.auctions)
+          .filter(([id, a]) => a.status === "active")
+          .map(([id, a]) => ({ id, ...a }));
+      }
+
+      async function bidOnAuction(auctionId, amount, pin) {
+        const data = await getOnlineData();
+        if (!data.auctions || !data.auctions[auctionId])
+          return { success: false, error: "notFound" };
+
+        const auction = data.auctions[auctionId];
+        if (auction.seller === playerName)
+          return { success: false, error: "ownAuction" };
+
+        // Sprawdź limit karty
+        const save = getCurrentSave();
+        if (amount > limit && pin !== playerPin) {
+          // Wyślij powiadomienie do sprzedawcy o braku PIN
+          await sendNotification(auction.seller, {
+            type: "pinRequired",
+            from: playerName,
+            auctionId: auctionId,
+            amount: amount,
+            message:
+              currentLang === "pl"
+                ? "Kupujący nie pamięta PIN"
+                : "Buyer forgot PIN",
+          });
+          return { success: false, error: "pinRequired" };
+        }
+
+        auction.bids.push({
+          bidder: playerName,
+          amount: amount,
+          timestamp: Date.now(),
+        });
+
+        // Powiadom sprzedawcę
+        await sendNotification(auction.seller, {
+          type: "newBid",
+          from: playerName,
+          auctionId: auctionId,
+          amount: amount,
+        });
+
+        await saveOnlineData(data);
+        return { success: true };
+      }
+
+      async function negotiateAuction(auctionId, offeredPrice) {
+        const data = await getOnlineData();
+        if (!data.auctions || !data.auctions[auctionId])
+          return { success: false };
+
+        const auction = data.auctions[auctionId];
+
+        auction.negotiations.push({
+          from: playerName,
+          price: offeredPrice,
+          timestamp: Date.now(),
+          status: "pending",
+        });
+
+        // Powiadom sprzedawcę
+        await sendNotification(auction.seller, {
+          type: "negotiation",
+          from: playerName,
+          auctionId: auctionId,
+          offeredPrice: offeredPrice,
+        });
+
+        await saveOnlineData(data);
+        return { success: true };
+      }
+
+      async function respondToNegotiation(
+        auctionId,
+        negotiationIndex,
+        response,
+        counterOffer
+      ) {
+        const data = await getOnlineData();
+        if (!data.auctions || !data.auctions[auctionId])
+          return { success: false };
+
+        const auction = data.auctions[auctionId];
+        const negotiation = auction.negotiations[negotiationIndex];
+
+        if (response === "accept") {
+          negotiation.status = "accepted";
+          auction.status = "sold";
+          auction.soldTo = negotiation.from;
+          auction.soldPrice = negotiation.price;
+
+          await sendNotification(negotiation.from, {
+            type: "negotiationAccepted",
+            auctionId: auctionId,
+            price: negotiation.price,
+          });
+        } else if (response === "reject") {
+          negotiation.status = "rejected";
+
+          await sendNotification(negotiation.from, {
+            type: "negotiationRejected",
+            auctionId: auctionId,
+          });
+        } else if (response === "counter") {
+          negotiation.status = "countered";
+          negotiation.counterOffer = counterOffer;
+
+          await sendNotification(negotiation.from, {
+            type: "counterOffer",
+            from: playerName,
+            auctionId: auctionId,
+            counterOffer: counterOffer,
+          });
+        }
+
+        await saveOnlineData(data);
+        return { success: true };
+      }
+
+      async function acceptAuction(auctionId, pinInput) {
+        const data = await getOnlineData();
+        if (!data.auctions || !data.auctions[auctionId])
+          return { success: false };
+
+        const auction = data.auctions[auctionId];
+
+        // Sprawdź hajs
+        if (money < auction.price) {
+          return { success: false, error: "noMoney" };
+        }
+
+        auction.status = "sold";
+        auction.soldTo = playerName;
+        auction.soldPrice = auction.price;
+
+        await sendNotification(auction.seller, {
+          type: "auctionSold",
+          from: playerName,
+          auctionId: auctionId,
+          price: auction.price,
+        });
+
+        await saveOnlineData(data);
+        return {
+          success: true,
+          items: auction.items,
+          item: auction.item,
+          price: auction.price,
+        };
+      }
+
+      async function allowWithoutPin(notifId, auctionId, buyerName) {
+        const data = await getOnlineData();
+
+        await sendNotification(buyerName, {
+          type: "pinBypassed",
+          auctionId: auctionId,
+          from: playerName,
+        });
+
+        await removeNotification(notifId);
+        return { success: true };
+      }
+
+      async function denyWithoutPin(notifId, buyerName) {
+        await sendNotification(buyerName, {
+          type: "pinDenied",
+          from: playerName,
+        });
+
+        await removeNotification(notifId);
+        return { success: true };
+      }
+
+      // ========== WŁASNE UBEZPIECZENIA ==========
+      async function createCustomInsurance(insurance) {
+        const auctionId = await createAuction({
+          type: "customInsurance",
+          name: insurance.name,
+          coverage: insurance.coverage,
+          interval: insurance.interval,
+          price: insurance.price,
+          createdBy: playerName,
+        });
+        return auctionId;
+      }
+
+      // ========== SKLEP Z LIMITEM ==========
+      async function checkShopReset() {
+        const data = await getOnlineData();
+        if (!data.shop) data.shop = { lastReset: 0, items: {} };
+
+        const now = Date.now();
+        const lastReset = data.shop.lastReset || 0;
+        const monday = getLastMonday();
+
+        if (lastReset < monday) {
+          // Reset sklepu
+          data.shop.lastReset = now;
+          data.shop.items = {}; // Resetuj ilości
+          await saveOnlineData(data);
+        }
+      }
+
+      function getLastMonday() {
+        const now = new Date();
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        const monday = new Date(now.setDate(diff));
+        monday.setHours(0, 0, 0, 0);
+        return monday.getTime();
+      }
+
+      // ========== LOKALNE FUNKCJE BONÓW ==========
       function getUsedVoucherIds() {
         try {
           return JSON.parse(
@@ -6363,7 +7217,7 @@
         return getUsedVoucherIds().includes(voucherId);
       }
 
-      function checkUrlForVoucher() {
+      async function checkUrlForVoucher() {
         const urlParams = new URLSearchParams(window.location.search);
         const t = translations[currentLang] || translations.en;
 
@@ -6382,11 +7236,41 @@
             window.location.pathname
           );
 
-          // Sprawdź czy bon był już użyty (link jednorazowy!)
-          if (isVoucherUsed(vid)) {
+          // Sprawdź status bonu online
+          const onlineVoucher = await checkVoucherOnline(vid);
+
+          if (!onlineVoucher) {
+            alert(t.voucherNotFound || "Nie znaleziono bonu!");
+            return;
+          }
+
+          // Sprawdź czy bon już wykorzystany lub anulowany
+          if (onlineVoucher.status === "used") {
             alert(t.voucherAlreadyUsed || "Ten bon został już wykorzystany!");
             return;
           }
+
+          if (onlineVoucher.status === "cancelled") {
+            alert(
+              t.voucherCancelled || "Ten bon został anulowany przez nadawcę."
+            );
+            return;
+          }
+
+          // Sprawdź czy link wygasł (30 sekund od pierwszego wejścia)
+          if (onlineVoucher.firstOpenedAt) {
+            const timeSinceOpened = Date.now() - onlineVoucher.firstOpenedAt;
+            if (timeSinceOpened > VOUCHER_EXPIRY_SECONDS * 1000) {
+              alert(
+                t.voucherExpired ||
+                  "Ten link wygasł! Masz tylko 30 sekund od pierwszego otwarcia."
+              );
+              return;
+            }
+          }
+
+          // Oznacz jako otwarty (pierwsze wejście)
+          await markVoucherOpened(vid);
 
           // Sprawdź czy nadawca nie próbuje odebrać swojego bonu
           const save = getCurrentSave();
@@ -6454,24 +7338,116 @@
                           voucher.gameMode === "reallife" ? "🌍" : "🚗"
                         } ${modeName}
                     </div>
+                    ${
+                      voucher.isFromLink
+                        ? `
+                        <div id="voucherCountdown" style="font-size:1.1em;color:#ef4444;margin-top:15px;font-weight:bold;">
+                            ⏱️ <span id="countdownSeconds">30</span>s
+                        </div>
+                    `
+                        : ""
+                    }
                 </div>
                 
-                <div style="display:flex;gap:10px;">
-                    <button onclick="acceptReceivedVoucher()" style="flex:1;padding:15px;background:#10b981;color:white;border:none;border-radius:10px;font-size:1em;cursor:pointer;">
-                        ✅ ${t.acceptVoucher || "Przyjmij"}
-                    </button>
-                    <button onclick="rejectReceivedVoucher()" style="flex:1;padding:15px;background:#f59e0b;color:white;border:none;border-radius:10px;font-size:1em;cursor:pointer;">
-                        ↩️ ${t.rejectVoucher || "Przekaż dalej"}
-                    </button>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <div style="display:flex;gap:10px;">
+                        <button onclick="acceptReceivedVoucher()" style="flex:1;padding:15px;background:#10b981;color:white;border:none;border-radius:10px;font-size:1em;cursor:pointer;">
+                            ✅ ${t.acceptVoucher || "Przyjmij"}
+                        </button>
+                        <button onclick="rejectReceivedVoucher()" style="flex:1;padding:15px;background:#f59e0b;color:white;border:none;border-radius:10px;font-size:1em;cursor:pointer;">
+                            ↩️ ${t.rejectVoucher || "Przekaż dalej"}
+                        </button>
+                    </div>
+                    ${
+                      voucher.isFromLink
+                        ? `
+                        <button onclick="cancelReceivedVoucher()" style="padding:12px;background:#ef4444;color:white;border:none;border-radius:10px;font-size:0.95em;cursor:pointer;">
+                            ❌ ${
+                              t.cancelAndRefund || "Anuluj (zwrot dla nadawcy)"
+                            }
+                        </button>
+                    `
+                        : ""
+                    }
                 </div>
             `;
 
         // Zapisz tymczasowo
         window.tempReceivedVoucher = voucher;
         openModal("voucherPreview");
+
+        // Uruchom odliczanie 30 sekund (tylko dla linków online)
+        if (voucher.isFromLink) {
+          startVoucherCountdown(voucher.id);
+        }
       }
 
-      function acceptReceivedVoucher() {
+      // Odliczanie 30 sekund
+      let voucherCountdownInterval = null;
+      async function startVoucherCountdown(voucherId) {
+        if (voucherCountdownInterval) clearInterval(voucherCountdownInterval);
+
+        // Pobierz czas otwarcia z serwera
+        const onlineVoucher = await checkVoucherOnline(voucherId);
+        if (!onlineVoucher || !onlineVoucher.firstOpenedAt) return;
+
+        const startTime = onlineVoucher.firstOpenedAt;
+        const endTime = startTime + VOUCHER_EXPIRY_SECONDS * 1000;
+
+        voucherCountdownInterval = setInterval(async () => {
+          const remaining = Math.max(
+            0,
+            Math.ceil((endTime - Date.now()) / 1000)
+          );
+          const countdownEl = document.getElementById("countdownSeconds");
+          if (countdownEl) {
+            countdownEl.textContent = remaining;
+          }
+
+          if (remaining <= 0) {
+            clearInterval(voucherCountdownInterval);
+            closeModal("voucherPreview");
+            const t = translations[currentLang] || translations.en;
+            alert(t.voucherExpired || "Czas minął! Link wygasł.");
+            window.tempReceivedVoucher = null;
+          }
+        }, 500);
+      }
+
+      // Anuluj bon i zwróć hajs nadawcy
+      async function cancelReceivedVoucher() {
+        if (!window.tempReceivedVoucher) return;
+
+        const voucher = window.tempReceivedVoucher;
+        const t = translations[currentLang] || translations.en;
+
+        // Zatrzymaj odliczanie
+        if (voucherCountdownInterval) clearInterval(voucherCountdownInterval);
+
+        // Oznacz bon jako anulowany online
+        await cancelVoucherOnline(voucher.id);
+        markVoucherAsUsed(voucher.id);
+
+        closeModal("voucherPreview");
+
+        const voucherName =
+          voucher.gameMode === "reallife"
+            ? currentLang === "pl"
+              ? "Kupon"
+              : "Coupon"
+            : currentLang === "pl"
+            ? "Bon"
+            : "Voucher";
+        alert(
+          `❌ ${voucherName} ${t.cancelled || "anulowany"}!\n${
+            t.refundToSender || "Zwrot dla nadawcy"
+          }: ${voucher.amount.toLocaleString()} ${getCurrency()}`
+        );
+
+        window.tempReceivedVoucher = null;
+      }
+
+      async function acceptReceivedVoucher() {
         if (!window.tempReceivedVoucher) return;
 
         const voucher = window.tempReceivedVoucher;
@@ -6479,15 +7455,17 @@
         const t = translations[currentLang] || translations.en;
         const voucherMode = voucher.gameMode || "beamng";
 
-        // Oznacz bon jako wykorzystany (jeśli z linku)
+        // Zatrzymaj odliczanie
+        if (voucherCountdownInterval) clearInterval(voucherCountdownInterval);
+
+        // Oznacz bon jako wykorzystany
         if (voucher.isFromLink) {
+          await markVoucherUsedOnline(voucher.id);
           markVoucherAsUsed(voucher.id);
-          // Pieniądze już zostały odjęte nadawcy przy wysyłce online
         } else {
           // Bon lokalny - teraz odejmij pieniądze nadawcy
           const senderSave = saves.find((s) => s.id === voucher.fromSaveId);
           if (senderSave) {
-            // Usuń bon z listy oczekujących nadawcy
             if (senderSave.data.vouchersToSend) {
               const vIdx = senderSave.data.vouchersToSend.findIndex(
                 (v) => v.id === voucher.id
@@ -6496,7 +7474,6 @@
                 senderSave.data.vouchersToSend.splice(vIdx, 1);
               }
             }
-            // Odejmij pieniądze nadawcy z odpowiedniego trybu
             const senderModeKey =
               voucherMode === "reallife" ? "realLifeData" : "beamngData";
             if (senderSave[senderModeKey]) {
@@ -6510,7 +7487,6 @@
         const receiverModeKey =
           voucherMode === "reallife" ? "realLifeData" : "beamngData";
 
-        // Upewnij się że dane trybu istnieją
         if (!save[receiverModeKey]) {
           save[receiverModeKey] = {
             money: 1500,
@@ -6527,7 +7503,6 @@
         save[receiverModeKey].money =
           (save[receiverModeKey].money || 0) + voucher.amount;
 
-        // Jeśli jesteśmy w tym samym trybie, zaktualizuj też lokalną zmienną
         if (voucherMode === gameMode) {
           money += voucher.amount;
         }
@@ -6553,14 +7528,18 @@
         window.tempReceivedVoucher = null;
       }
 
-      function rejectReceivedVoucher() {
+      async function rejectReceivedVoucher() {
         if (!window.tempReceivedVoucher) return;
 
         const voucher = window.tempReceivedVoucher;
         const save = getCurrentSave();
 
-        // Oznacz stary bon jako wykorzystany (jeśli z linku)
+        // Zatrzymaj odliczanie
+        if (voucherCountdownInterval) clearInterval(voucherCountdownInterval);
+
+        // Oznacz stary bon jako wykorzystany
         if (voucher.isFromLink) {
+          await markVoucherUsedOnline(voucher.id);
           markVoucherAsUsed(voucher.id);
         }
 
@@ -6574,7 +7553,7 @@
           fromSave: save.name,
           fromSaveId: save.id,
           gameMode: voucher.gameMode || gameMode,
-          originalFrom: voucher.fromSave, // Zachowaj info o oryginalnym nadawcy
+          originalFrom: voucher.fromSave,
         };
 
         if (!save.data.vouchersToSend) save.data.vouchersToSend = [];
@@ -7519,6 +8498,1275 @@
         currentJob = null;
       }
 
+      // ==================== UI SYSTEMU ONLINE ====================
+
+      // Renderuj konto online
+      async function renderOnlineAccount() {
+        const t = translations[currentLang] || translations.en;
+        const content = document.getElementById("onlineAccountContent");
+
+        if (!playerName) {
+          // Formularz rejestracji/logowania
+          content.innerHTML = `
+                    <div style="margin-bottom:20px;">
+                        <p style="color:#888;margin-bottom:15px;">${
+                          t.chooseNameAndPin || "Wybierz nazwę i PIN (4 cyfry)"
+                        }</p>
+                        <input type="text" id="regName" placeholder="${
+                          t.playerName || "Nazwa gracza"
+                        }" maxlength="20" style="width:100%;padding:12px;background:#1a1a2e;border:2px solid #333;border-radius:8px;color:white;margin-bottom:10px;">
+                        <input type="password" id="regPin" placeholder="PIN (4 cyfry)" maxlength="4" style="width:100%;padding:12px;background:#1a1a2e;border:2px solid #333;border-radius:8px;color:white;margin-bottom:15px;">
+                        <button onclick="handleRegister()" style="width:100%;padding:12px;background:#10b981;color:white;border:none;border-radius:8px;cursor:pointer;font-size:1em;margin-bottom:10px;">
+                            ✅ ${t.register || "Zarejestruj się"}
+                        </button>
+                        <button onclick="handleLogin()" style="width:100%;padding:12px;background:#3b82f6;color:white;border:none;border-radius:8px;cursor:pointer;font-size:1em;">
+                            🔑 ${t.login || "Zaloguj się"}
+                        </button>
+                    </div>
+                `;
+        } else {
+          // Zalogowany
+          const onlinePlayers = await getOnlinePlayers();
+          content.innerHTML = `
+                    <div style="text-align:center;margin-bottom:20px;">
+                        <div style="font-size:3em;margin-bottom:10px;">👤</div>
+                        <div style="font-size:1.3em;font-weight:bold;">${playerName}</div>
+                        <div style="color:#10b981;font-size:0.9em;">🟢 Online</div>
+                    </div>
+                    <div style="background:#1a1a2e;padding:15px;border-radius:10px;margin-bottom:15px;">
+                        <div style="font-weight:bold;margin-bottom:10px;">👥 ${
+                          t.onlinePlayers || "Gracze online"
+                        }: ${onlinePlayers.length}</div>
+                        ${
+                          onlinePlayers.length > 0
+                            ? onlinePlayers
+                                .map(
+                                  (p) => `
+                            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#222;border-radius:6px;margin-bottom:5px;">
+                                <span>${
+                                  p.name
+                                } <span style="color:#888;font-size:0.8em;">(${
+                                    p.gameMode === "reallife" ? "🌍" : "🚗"
+                                  })</span></span>
+                            </div>
+                        `
+                                )
+                                .join("")
+                            : `<div style="color:#666;">${
+                                t.noPlayersOnline || "Brak graczy online"
+                              }</div>`
+                        }
+                    </div>
+                    <button onclick="handleLogout()" style="width:100%;padding:12px;background:#ef4444;color:white;border:none;border-radius:8px;cursor:pointer;">
+                        🚪 ${t.logout || "Wyloguj"}
+                    </button>
+                `;
+        }
+      }
+
+      async function handleRegister() {
+        const name = document.getElementById("regName").value.trim();
+        const pin = document.getElementById("regPin").value.trim();
+        const t = translations[currentLang] || translations.en;
+
+        if (!name || name.length < 2) {
+          alert(t.nameTooShort || "Nazwa musi mieć min. 2 znaki");
+          return;
+        }
+        if (!pin || pin.length !== 4 || !/^\d+$/.test(pin)) {
+          alert(t.pinMustBe4 || "PIN musi mieć 4 cyfry");
+          return;
+        }
+
+        const result = await registerPlayer(name, pin);
+        if (result.success) {
+          alert(
+            `✅ ${t.registered || "Zarejestrowano!"} ${
+              t.welcome || "Witaj"
+            }, ${name}!`
+          );
+          renderOnlineAccount();
+          startOnlineStatusUpdater();
+        } else if (result.error === "nameTaken") {
+          alert(t.nameTaken || "Ta nazwa jest już zajęta!");
+        }
+      }
+
+      async function handleLogin() {
+        const name = document.getElementById("regName").value.trim();
+        const pin = document.getElementById("regPin").value.trim();
+        const t = translations[currentLang] || translations.en;
+
+        const result = await loginPlayer(name, pin);
+        if (result.success) {
+          alert(
+            `✅ ${t.loggedIn || "Zalogowano!"} ${
+              t.welcome || "Witaj"
+            }, ${name}!`
+          );
+          renderOnlineAccount();
+          startOnlineStatusUpdater();
+        } else if (result.error === "notFound") {
+          alert(t.playerNotFound || "Nie znaleziono gracza o tej nazwie");
+        } else if (result.error === "wrongPin") {
+          alert(t.wrongPin || "Błędny PIN!");
+        }
+      }
+
+      function handleLogout() {
+        playerName = null;
+        playerPin = null;
+        localStorage.removeItem("beamng_player_name");
+        localStorage.removeItem("beamng_player_pin");
+        renderOnlineAccount();
+      }
+
+      // Aktualizacja statusu online co 30 sekund
+      function startOnlineStatusUpdater() {
+        if (playerName) {
+          updatePlayerStatus();
+          setInterval(() => {
+            if (playerName) {
+              updatePlayerStatus();
+              checkNotifications();
+            }
+          }, 30000);
+        }
+      }
+
+      // Renderuj powiadomienia
+      async function renderNotifications() {
+        const t = translations[currentLang] || translations.en;
+        const list = document.getElementById("notificationsList");
+
+        if (!playerName) {
+          list.innerHTML = `<p style="color:#888;text-align:center;">${
+            t.loginFirst || "Najpierw się zaloguj"
+          }</p>`;
+          return;
+        }
+
+        const notifs = await getMyNotifications();
+
+        if (notifs.length === 0) {
+          list.innerHTML = `<p style="color:#888;text-align:center;">${
+            t.noNotifications || "Brak powiadomień"
+          }</p>`;
+          return;
+        }
+
+        list.innerHTML = notifs
+          .sort((a, b) => b.timestamp - a.timestamp)
+          .map((n) => {
+            const timeAgo = formatTimeAgo(n.timestamp);
+            let icon = "📩";
+            let text = "";
+            let actions = "";
+
+            switch (n.type) {
+              case "voucher":
+                icon = "🎁";
+                text = `${n.from} ${
+                  t.sentYouVoucher || "wysłał Ci bon"
+                }: ${n.amount.toLocaleString()} ${getCurrency()}`;
+                actions = `
+                            <button onclick="acceptVoucherNotif('${n.id}', '${n.voucherId}')" style="padding:8px 12px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;margin-right:5px;">✅</button>
+                            <button onclick="rejectVoucherNotif('${n.id}', '${n.voucherId}')" style="padding:8px 12px;background:#ef4444;color:white;border:none;border-radius:6px;cursor:pointer;">❌</button>
+                        `;
+                break;
+              case "newBid":
+                icon = "💰";
+                text = `${n.from} ${
+                  t.bidOn || "zalicytował"
+                }: ${n.amount.toLocaleString()} ${getCurrency()}`;
+                break;
+              case "negotiation":
+                icon = "🤝";
+                text = `${n.from} ${
+                  t.wantsToNegotiate || "chce negocjować"
+                }: ${n.offeredPrice.toLocaleString()} ${getCurrency()}`;
+                actions = `
+                            <button onclick="respondNegotiation('${n.id}', '${n.auctionId}', 'accept')" style="padding:6px 10px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;margin:2px;">✅</button>
+                            <button onclick="respondNegotiation('${n.id}', '${n.auctionId}', 'reject')" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:6px;cursor:pointer;margin:2px;">❌</button>
+                            <button onclick="showCounterOffer('${n.id}', '${n.auctionId}', '${n.from}')" style="padding:6px 10px;background:#f59e0b;color:white;border:none;border-radius:6px;cursor:pointer;margin:2px;">💬</button>
+                        `;
+                break;
+              case "counterOffer":
+                icon = "💬";
+                text = `${n.from} ${
+                  t.counterOffer || "kontr-oferta"
+                }: ${n.counterOffer.toLocaleString()} ${getCurrency()}`;
+                actions = `
+                            <button onclick="acceptCounterOffer('${n.id}', '${n.auctionId}', ${n.counterOffer})" style="padding:6px 10px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;margin:2px;">✅</button>
+                            <button onclick="rejectCounterOffer('${n.id}')" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:6px;cursor:pointer;margin:2px;">❌</button>
+                        `;
+                break;
+              case "auctionSold":
+                icon = "🎉";
+                text = `${n.from} ${
+                  t.boughtYourItem || "kupił Twój przedmiot"
+                } za ${n.price.toLocaleString()} ${getCurrency()}`;
+                break;
+              case "pinRequired":
+                icon = "🔐";
+                text = `${n.from}: ${n.message}`;
+                actions = `
+                            <button onclick="allowWithoutPinUI('${n.id}', '${
+                  n.auctionId
+                }', '${
+                  n.from
+                }')" style="padding:6px 10px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;margin:2px;">${
+                  t.allow || "Pozwól"
+                }</button>
+                            <button onclick="denyWithoutPinUI('${n.id}', '${
+                  n.from
+                }')" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:6px;cursor:pointer;margin:2px;">${
+                  t.deny || "Odmów"
+                }</button>
+                        `;
+                break;
+              case "pinBypassed":
+                icon = "✅";
+                text = `${n.from} ${
+                  t.allowedWithoutPin || "pozwolił kupić bez PIN"
+                }`;
+                break;
+              case "pinDenied":
+                icon = "❌";
+                text = `${n.from} ${
+                  t.deniedWithoutPin || "nie pozwolił kupić bez PIN"
+                }`;
+                break;
+              case "negotiationAccepted":
+                icon = "✅";
+                text =
+                  t.yourOfferAccepted || "Twoja oferta została zaakceptowana!";
+                break;
+              case "negotiationRejected":
+                icon = "❌";
+                text = t.yourOfferRejected || "Twoja oferta została odrzucona";
+                break;
+              default:
+                text = n.message || "Powiadomienie";
+            }
+
+            return `
+                    <div style="background:${
+                      n.read ? "#1a1a2e" : "#2a2a4e"
+                    };padding:12px;border-radius:8px;margin-bottom:8px;${
+              n.read ? "" : "border-left:3px solid #3b82f6;"
+            }">
+                        <div style="display:flex;justify-content:space-between;align-items:start;">
+                            <div style="flex:1;">
+                                <span style="font-size:1.2em;">${icon}</span> ${text}
+                                <div style="color:#666;font-size:0.8em;margin-top:5px;">${timeAgo}</div>
+                            </div>
+                            <button onclick="dismissNotification('${
+                              n.id
+                            }')" style="background:none;border:none;color:#666;cursor:pointer;font-size:1.2em;">×</button>
+                        </div>
+                        ${
+                          actions
+                            ? `<div style="margin-top:10px;">${actions}</div>`
+                            : ""
+                        }
+                    </div>
+                `;
+          })
+          .join("");
+
+        // Oznacz jako przeczytane
+        for (const n of notifs.filter((n) => !n.read)) {
+          await markNotificationRead(n.id);
+        }
+        unreadNotifications = 0;
+        updateNotificationBadge();
+      }
+
+      function formatTimeAgo(timestamp) {
+        const seconds = Math.floor((Date.now() - timestamp) / 1000);
+        if (seconds < 60)
+          return currentLang === "pl" ? "przed chwilą" : "just now";
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes} min`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h`;
+        return `${Math.floor(hours / 24)}d`;
+      }
+
+      async function dismissNotification(notifId) {
+        await removeNotification(notifId);
+        renderNotifications();
+      }
+
+      // Renderuj aukcje
+      let currentAuctionTab = "browse";
+
+      async function showAuctionTab(tab) {
+        currentAuctionTab = tab;
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((b) => (b.style.background = "#222"));
+        document.getElementById(
+          "tab" + tab.charAt(0).toUpperCase() + tab.slice(1)
+        ).style.background = "#333";
+        await renderAuctionContent();
+      }
+
+      async function renderAuctionContent() {
+        const t = translations[currentLang] || translations.en;
+        const content = document.getElementById("auctionContent");
+
+        if (!playerName) {
+          content.innerHTML = `<p style="color:#888;text-align:center;padding:20px;">${
+            t.loginFirst || "Najpierw się zaloguj"
+          }</p>`;
+          return;
+        }
+
+        if (currentAuctionTab === "browse") {
+          const auctions = await getActiveAuctions();
+          const otherAuctions = auctions.filter((a) => a.seller !== playerName);
+
+          if (otherAuctions.length === 0) {
+            content.innerHTML = `<p style="color:#888;text-align:center;padding:20px;">${
+              t.noAuctions || "Brak aukcji"
+            }</p>`;
+            return;
+          }
+
+          content.innerHTML = otherAuctions
+            .map((a) => {
+              const displayName =
+                a.name ||
+                (a.item
+                  ? a.item.name || a.item.brand + " " + a.item.model
+                  : "Pakiet");
+              const icon =
+                a.items && a.items.length > 1
+                  ? "📦"
+                  : a.items && a.items[0]
+                  ? getItemIcon(a.items[0])
+                  : "📦";
+              return `
+                    <div onclick="showAuctionDetail('${
+                      a.id
+                    }')" style="background:#1a1a2e;padding:12px;border-radius:8px;margin-bottom:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <div style="font-weight:bold;">${icon} ${displayName}</div>
+                            <div style="color:#888;font-size:0.85em;">${
+                              t.seller || "Sprzedawca"
+                            }: ${a.seller}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="color:#10b981;font-weight:bold;">${a.price.toLocaleString()} ${getCurrency()}</div>
+                        </div>
+                    </div>
+                `;
+            })
+            .join("");
+        } else if (currentAuctionTab === "my") {
+          const auctions = await getActiveAuctions();
+          const myAuctions = auctions.filter((a) => a.seller === playerName);
+
+          if (myAuctions.length === 0) {
+            content.innerHTML = `<p style="color:#888;text-align:center;padding:20px;">${
+              t.noMyAuctions || "Nie masz wystawionych przedmiotów"
+            }</p>`;
+            return;
+          }
+
+          content.innerHTML = myAuctions
+            .map((a) => {
+              const displayName =
+                a.name ||
+                (a.item
+                  ? a.item.name || a.item.brand + " " + a.item.model
+                  : "Pakiet");
+              const icon =
+                a.items && a.items.length > 1
+                  ? "📦"
+                  : a.items && a.items[0]
+                  ? getItemIcon(a.items[0])
+                  : "📦";
+              return `
+                    <div style="background:#1a1a2e;padding:12px;border-radius:8px;margin-bottom:8px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <div>
+                                <div style="font-weight:bold;">${icon} ${displayName}</div>
+                                <div style="color:#10b981;">${a.price.toLocaleString()} ${getCurrency()}</div>
+                            </div>
+                            <button onclick="cancelAuction('${
+                              a.id
+                            }')" style="padding:8px 12px;background:#ef4444;color:white;border:none;border-radius:6px;cursor:pointer;">❌</button>
+                        </div>
+                        ${
+                          a.negotiations && a.negotiations.length > 0
+                            ? `<div style="color:#f59e0b;font-size:0.85em;margin-top:8px;">💬 ${
+                                a.negotiations.length
+                              } ${t.negotiations || "negocjacji"}</div>`
+                            : ""
+                        }
+                    </div>
+                `;
+            })
+            .join("");
+        } else if (currentAuctionTab === "create") {
+          // Lista rzeczy do wystawienia
+          const save = getCurrentSave();
+
+          content.innerHTML = `
+                    <div style="margin-bottom:15px;">
+                        <p style="color:#888;margin-bottom:10px;">${
+                          t.selectItemsToSell || "Zaznacz co chcesz wystawić:"
+                        }</p>
+                        
+                        <div style="font-weight:bold;margin:15px 0 8px;color:#f59e0b;">🚗 ${
+                          t.cars || "Auta"
+                        }</div>
+                        <div id="auctionCarsList"></div>
+                        
+                        <div style="font-weight:bold;margin:15px 0 8px;color:#10b981;">🍔 ${
+                          t.food || "Jedzenie"
+                        }</div>
+                        <div id="auctionFoodList"></div>
+                        
+                        <div style="font-weight:bold;margin:15px 0 8px;color:#8b5cf6;">🛡️ ${
+                          t.customInsurance || "Własne ubezpieczenie"
+                        }</div>
+                        <button onclick="showCreateInsuranceForm()" style="width:100%;padding:12px;background:#1a1a2e;border:2px dashed #8b5cf6;border-radius:8px;color:#8b5cf6;cursor:pointer;">
+                            ➕ ${t.createInsurance || "Stwórz ubezpieczenie"}
+                        </button>
+                        <div id="customInsurancePreview" style="margin-top:10px;"></div>
+                    </div>
+                    
+                    <div id="auctionSelectedItems" style="background:#1a1a2e;padding:12px;border-radius:8px;margin:15px 0;display:none;">
+                        <div style="font-weight:bold;margin-bottom:8px;">📦 ${
+                          t.selectedItems || "Wybrane"
+                        }:</div>
+                        <div id="selectedItemsList"></div>
+                    </div>
+                    
+                    <div style="margin-top:15px;">
+                        <label style="color:#888;font-size:0.9em;">${
+                          t.totalPrice || "Cena za pakiet"
+                        }:</label>
+                        <input type="number" id="auctionPackagePrice" placeholder="0" style="width:100%;padding:12px;background:#1a1a2e;border:2px solid #333;border-radius:8px;color:white;font-size:1.2em;margin-top:5px;">
+                    </div>
+                    
+                    <button onclick="createAuctionPackage()" style="width:100%;padding:15px;background:#10b981;color:white;border:none;border-radius:10px;font-size:1em;cursor:pointer;margin-top:15px;">
+                        ✅ ${t.listForSale || "Wystaw na sprzedaż"}
+                    </button>
+                `;
+
+          renderAuctionItemLists();
+        }
+      }
+
+      // Wybrane przedmioty do aukcji
+      let auctionSelectedCars = [];
+      let auctionSelectedFood = [];
+      let auctionCustomInsurance = null;
+
+      function renderAuctionItemLists() {
+        const t = translations[currentLang] || translations.en;
+
+        // Auta - używaj globalnej zmiennej garage
+        const carsList = document.getElementById("auctionCarsList");
+        if (!carsList) return;
+
+        if (garage.length === 0) {
+          carsList.innerHTML = `<p style="color:#666;font-size:0.9em;">${
+            t.noCars || "Brak aut"
+          }</p>`;
+        } else {
+          carsList.innerHTML = garage
+            .map(
+              (car, i) => `
+                    <div onclick="toggleAuctionCar(${i})" style="background:${
+                auctionSelectedCars.includes(i) ? "#2a4a2a" : "#222"
+              };padding:10px;border-radius:6px;margin-bottom:5px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border:2px solid ${
+                auctionSelectedCars.includes(i) ? "#10b981" : "transparent"
+              };">
+                        <span>${car.brand} ${car.model}</span>
+                        <span style="color:#888;">${car.price.toLocaleString()} ${getCurrency()}</span>
+                    </div>
+                `
+            )
+            .join("");
+        }
+
+        // Jedzenie - używaj globalnej zmiennej backpack
+        const foodList = document.getElementById("auctionFoodList");
+        if (!foodList) return;
+
+        if (backpack.length === 0) {
+          foodList.innerHTML = `<p style="color:#666;font-size:0.9em;">${
+            t.noFood || "Brak jedzenia"
+          }</p>`;
+        } else {
+          // Grupuj jedzenie według id
+          const groupedFood = {};
+          for (let i = 0; i < backpack.length; i++) {
+            const item = backpack[i];
+            const key = item.id || item.nameKey || "item_" + i;
+            if (!groupedFood[key]) {
+              groupedFood[key] = { item: item, indices: [], count: 0 };
+            }
+            groupedFood[key].indices.push(i);
+            groupedFood[key].count++;
+          }
+
+          let html = "";
+          for (const key in groupedFood) {
+            const data = groupedFood[key];
+            const item = data.item;
+            const itemName = item.nameKey
+              ? translations[currentLang][item.nameKey] || item.nameKey
+              : item.name || "Przedmiot";
+            const icon = item.icon || "📦";
+            const selectedCount = data.indices.filter((i) =>
+              auctionSelectedFood.includes(i)
+            ).length;
+            const isSelected = selectedCount > 0;
+            const allSelected = selectedCount === data.count;
+
+            html += `
+                    <div onclick="toggleAuctionFoodGroup('${key}')" style="background:${
+              isSelected ? "#2a4a2a" : "#222"
+            };padding:10px;border-radius:6px;margin-bottom:5px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border:2px solid ${
+              allSelected ? "#10b981" : isSelected ? "#4a7a4a" : "transparent"
+            };">
+                        <span>${icon} ${itemName} ${
+              data.count > 1
+                ? '<span style="color:#ff6b35;">x' + data.count + "</span>"
+                : ""
+            }</span>
+                        <span style="color:#888;">${(
+                          item.price || 0
+                        ).toLocaleString()} ${getCurrency()}</span>
+                    </div>`;
+          }
+          foodList.innerHTML = html;
+        }
+
+        updateSelectedItemsPreview();
+      }
+
+      // Przechowuj grupowanie
+      let foodGroups = {};
+
+      function updateFoodGroups() {
+        foodGroups = {};
+        backpack.forEach((item, i) => {
+          const key = item.id || item.nameKey || item.name;
+          if (!foodGroups[key]) {
+            foodGroups[key] = [];
+          }
+          foodGroups[key].push(i);
+        });
+      }
+
+      function toggleAuctionFoodGroup(key) {
+        updateFoodGroups();
+        const indices = foodGroups[key] || [];
+
+        // Sprawdź ile jest już zaznaczonych
+        const selectedCount = indices.filter((i) =>
+          auctionSelectedFood.includes(i)
+        ).length;
+
+        if (selectedCount === indices.length) {
+          // Wszystkie zaznaczone - odznacz wszystkie
+          indices.forEach((i) => {
+            auctionSelectedFood = auctionSelectedFood.filter((x) => x !== i);
+          });
+        } else {
+          // Nie wszystkie zaznaczone - zaznacz wszystkie
+          indices.forEach((i) => {
+            if (!auctionSelectedFood.includes(i)) {
+              auctionSelectedFood.push(i);
+            }
+          });
+        }
+
+        renderAuctionItemLists();
+      }
+
+      function toggleAuctionCar(index) {
+        if (auctionSelectedCars.includes(index)) {
+          auctionSelectedCars = auctionSelectedCars.filter((i) => i !== index);
+        } else {
+          auctionSelectedCars.push(index);
+        }
+        renderAuctionItemLists();
+      }
+
+      function updateSelectedItemsPreview() {
+        const t = translations[currentLang] || translations.en;
+
+        const container = document.getElementById("auctionSelectedItems");
+        const list = document.getElementById("selectedItemsList");
+
+        if (!container || !list) return;
+
+        const hasItems =
+          auctionSelectedCars.length > 0 ||
+          auctionSelectedFood.length > 0 ||
+          auctionCustomInsurance;
+        container.style.display = hasItems ? "block" : "none";
+
+        if (!hasItems) return;
+
+        let html = "";
+        let totalValue = 0;
+
+        auctionSelectedCars.forEach((i) => {
+          const car = garage[i];
+          if (car) {
+            html += `<div style="color:#f59e0b;">🚗 ${car.brand} ${car.model}</div>`;
+            totalValue += car.price;
+          }
+        });
+
+        auctionSelectedFood.forEach((i) => {
+          const item = backpack[i];
+          if (item) {
+            const itemName = item.nameKey ? getItemName(item) : item.name;
+            const icon = item.icon || "🍔";
+            html += `<div style="color:#10b981;">${icon} ${itemName}</div>`;
+            totalValue += item.price || 0;
+          }
+        });
+
+        if (auctionCustomInsurance) {
+          html += `<div style="color:#8b5cf6;">🛡️ ${auctionCustomInsurance.name}</div>`;
+          if (auctionCustomInsurance.creationCost) {
+            html += `<div style="color:#f59e0b;font-size:0.85em;margin-left:20px;">💰 ${
+              t.creationCost || "Koszt"
+            }: ${auctionCustomInsurance.creationCost.toLocaleString()} ${getCurrency()}</div>`;
+          }
+        }
+
+        list.innerHTML = html;
+
+        // Ustaw sugerowaną cenę
+        const priceInput = document.getElementById("auctionPackagePrice");
+        if (priceInput && !priceInput.value) {
+          priceInput.placeholder = totalValue.toLocaleString();
+        }
+      }
+
+      function showCreateInsuranceForm() {
+        const t = translations[currentLang] || translations.en;
+        const preview = document.getElementById("customInsurancePreview");
+
+        preview.innerHTML = `
+                <div style="background:#2a2a4e;padding:15px;border-radius:8px;border:2px solid #8b5cf6;">
+                    <div style="margin-bottom:10px;">
+                        <label style="color:#888;font-size:0.85em;">${
+                          t.insuranceName || "Nazwa ubezpieczenia"
+                        }:</label>
+                        <input type="text" id="customInsName" placeholder="${
+                          t.myInsurance || "Moje ubezpieczenie"
+                        }" style="width:100%;padding:10px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:white;margin-top:3px;">
+                    </div>
+                    
+                    <div style="margin-bottom:10px;">
+                        <label style="color:#888;font-size:0.85em;">${
+                          t.whatItGives || "Co daje"
+                        } (HP/jedzenie/woda):</label>
+                        <div style="display:flex;gap:10px;margin-top:3px;">
+                            <input type="number" id="customInsHP" placeholder="HP" style="flex:1;padding:10px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:white;">
+                            <input type="number" id="customInsFood" placeholder="🍔" style="flex:1;padding:10px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:white;">
+                            <input type="number" id="customInsWater" placeholder="💧" style="flex:1;padding:10px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:white;">
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom:10px;">
+                        <label style="color:#888;font-size:0.85em;">${
+                          t.coveragePercent || "Pokrycie napraw"
+                        } (%):</label>
+                        <input type="number" id="customInsCoverage" placeholder="50" min="0" max="100" style="width:100%;padding:10px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:white;margin-top:3px;">
+                    </div>
+                    
+                    <div style="margin-bottom:10px;">
+                        <label style="color:#888;font-size:0.85em;">${
+                          t.paymentInterval || "Opłata co ile minut"
+                        }:</label>
+                        <input type="number" id="customInsInterval" placeholder="60" style="width:100%;padding:10px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:white;margin-top:3px;">
+                    </div>
+                    
+                    <div style="margin-bottom:15px;">
+                        <label style="color:#888;font-size:0.85em;">${
+                          t.paymentAmount || "Kwota opłaty"
+                        }:</label>
+                        <input type="number" id="customInsPayment" placeholder="100" style="width:100%;padding:10px;background:#1a1a2e;border:1px solid #333;border-radius:6px;color:white;margin-top:3px;">
+                    </div>
+                    
+                    <div style="display:flex;gap:10px;">
+                        <button onclick="addCustomInsurance()" style="flex:1;padding:10px;background:#8b5cf6;color:white;border:none;border-radius:6px;cursor:pointer;">✅ ${
+                          t.add || "Dodaj"
+                        }</button>
+                        <button onclick="cancelCustomInsurance()" style="flex:1;padding:10px;background:#333;color:white;border:none;border-radius:6px;cursor:pointer;">❌ ${
+                          t.cancel || "Anuluj"
+                        }</button>
+                    </div>
+                </div>
+            `;
+      }
+
+      // Ceny za tworzenie ubezpieczenia
+      const INSURANCE_COST_PER_FOOD = 5; // 5 zł za 1 kalorię
+      const INSURANCE_COST_PER_WATER = 15; // 15 zł za 1 ml
+      const INSURANCE_COST_PER_HP = 20; // 20 zł za 1 HP
+      const INSURANCE_MAX_VALUE = 1000; // Max dla każdego
+
+      function calculateInsuranceCost(ins) {
+        const foodCost = (ins.food || 0) * INSURANCE_COST_PER_FOOD;
+        const waterCost = (ins.water || 0) * INSURANCE_COST_PER_WATER;
+        const hpCost = (ins.hp || 0) * INSURANCE_COST_PER_HP;
+        return foodCost + waterCost + hpCost;
+      }
+
+      function addCustomInsurance() {
+        const t = translations[currentLang] || translations.en;
+
+        const name =
+          document.getElementById("customInsName").value.trim() ||
+          t.myInsurance ||
+          "Moje ubezpieczenie";
+        let hp = parseInt(document.getElementById("customInsHP").value) || 0;
+        let food =
+          parseInt(document.getElementById("customInsFood").value) || 0;
+        let water =
+          parseInt(document.getElementById("customInsWater").value) || 0;
+        const coverage =
+          parseInt(document.getElementById("customInsCoverage").value) || 0;
+        const interval =
+          parseInt(document.getElementById("customInsInterval").value) || 60;
+        const payment =
+          parseInt(document.getElementById("customInsPayment").value) || 100;
+
+        // Limity max 1000
+        hp = Math.min(INSURANCE_MAX_VALUE, Math.max(0, hp));
+        food = Math.min(INSURANCE_MAX_VALUE, Math.max(0, food));
+        water = Math.min(INSURANCE_MAX_VALUE, Math.max(0, water));
+
+        const insuranceData = {
+          type: "customInsurance",
+          name: name,
+          hp: hp,
+          food: food,
+          water: water,
+          coverage: Math.min(100, Math.max(0, coverage)),
+          interval: interval,
+          payment: payment,
+        };
+
+        const creationCost = calculateInsuranceCost(insuranceData);
+
+        // Sprawdź czy stać gracza
+        if (creationCost > money) {
+          alert(
+            `${t.notEnoughMoney || "Nie masz wystarczająco pieniędzy!"}\n${
+              t.cost || "Koszt"
+            }: ${creationCost.toLocaleString()} ${getCurrency()}`
+          );
+          return;
+        }
+
+        auctionCustomInsurance = insuranceData;
+        auctionCustomInsurance.creationCost = creationCost;
+
+        const preview = document.getElementById("customInsurancePreview");
+        preview.innerHTML = `
+                <div style="background:#2a2a4e;padding:12px;border-radius:8px;border:2px solid #8b5cf6;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <div style="font-weight:bold;color:#8b5cf6;">🛡️ ${name}</div>
+                            <div style="color:#888;font-size:0.85em;">
+                                ${hp > 0 ? `+${hp} HP ` : ""}${
+          food > 0 ? `+${food} 🍔 ` : ""
+        }${water > 0 ? `+${water} 💧 ` : ""}${
+          coverage > 0 ? `${coverage}% napraw ` : ""
+        }
+                            </div>
+                            <div style="color:#666;font-size:0.8em;">${payment} ${getCurrency()} / ${interval} min</div>
+                        </div>
+                        <button onclick="removeCustomInsurance()" style="padding:8px 12px;background:#ef4444;color:white;border:none;border-radius:6px;cursor:pointer;">❌</button>
+                    </div>
+                    <div style="margin-top:8px;padding-top:8px;border-top:1px solid #444;color:#f59e0b;font-size:0.85em;">
+                        💰 ${
+                          t.creationCost || "Koszt stworzenia"
+                        }: ${creationCost.toLocaleString()} ${getCurrency()}
+                    </div>
+                </div>
+            `;
+
+        updateSelectedItemsPreview();
+      }
+
+      function cancelCustomInsurance() {
+        document.getElementById("customInsurancePreview").innerHTML = "";
+      }
+
+      function removeCustomInsurance() {
+        auctionCustomInsurance = null;
+        document.getElementById("customInsurancePreview").innerHTML = "";
+        updateSelectedItemsPreview();
+      }
+
+      async function createAuctionPackage() {
+        const t = translations[currentLang] || translations.en;
+        const save = getCurrentSave();
+
+        // Sprawdź czy zalogowany
+        if (!playerName) {
+          alert(t.loginFirst || "Najpierw się zaloguj!");
+          openModal("onlineAccount");
+          return;
+        }
+
+        const hasItems =
+          auctionSelectedCars.length > 0 ||
+          auctionSelectedFood.length > 0 ||
+          auctionCustomInsurance;
+        if (!hasItems) {
+          alert(t.selectSomething || "Wybierz coś do wystawienia!");
+          return;
+        }
+
+        const price = parseInt(
+          document.getElementById("auctionPackagePrice").value
+        );
+        if (!price || price <= 0) {
+          alert(t.enterPrice || "Podaj cenę!");
+          return;
+        }
+
+        // Oblicz koszt stworzenia (tylko za ubezpieczenie)
+        let creationCost = 0;
+        if (auctionCustomInsurance && auctionCustomInsurance.creationCost) {
+          creationCost = auctionCustomInsurance.creationCost;
+        }
+
+        // Sprawdź czy stać
+        if (creationCost > money) {
+          alert(
+            `${t.notEnoughMoney || "Nie masz wystarczająco pieniędzy!"}\n${
+              t.creationCost || "Koszt stworzenia"
+            }: ${creationCost.toLocaleString()} ${getCurrency()}`
+          );
+          return;
+        }
+
+        // Podsumowanie przed wystawieniem
+        let summary = `📦 ${
+          t.auctionSummary || "Podsumowanie"
+        }\n━━━━━━━━━━━━\n`;
+
+        auctionSelectedCars.forEach((i) => {
+          const car = garage[i];
+          summary += `🚗 ${car.brand} ${car.model}\n`;
+        });
+
+        auctionSelectedFood.forEach((i) => {
+          const item = backpack[i];
+          const itemName = item.nameKey ? getItemName(item) : item.name;
+          const icon = item.icon || "🍔";
+          summary += `${icon} ${itemName}\n`;
+        });
+
+        if (auctionCustomInsurance) {
+          summary += `🛡️ ${auctionCustomInsurance.name}\n`;
+          if (creationCost > 0) {
+            summary += `   💰 ${
+              t.creationCost || "Koszt"
+            }: -${creationCost.toLocaleString()} ${getCurrency()}\n`;
+          }
+        }
+
+        summary += `━━━━━━━━━━━━\n`;
+        summary += `💵 ${
+          t.sellingPrice || "Cena sprzedaży"
+        }: ${price.toLocaleString()} ${getCurrency()}\n`;
+        if (creationCost > 0) {
+          summary += `💸 ${
+            t.youPay || "Płacisz"
+          }: -${creationCost.toLocaleString()} ${getCurrency()}\n`;
+        }
+        summary += `\n${t.confirmListing || "Wystawić?"}`;
+
+        if (!confirm(summary)) {
+          return;
+        }
+
+        // Pobierz opłatę za ubezpieczenie
+        if (creationCost > 0) {
+          money -= creationCost;
+          spent += creationCost;
+        }
+
+        // Zbierz przedmioty
+        const packageItems = [];
+        let packageName = "";
+
+        // Auta (sortuj malejąco żeby usuwać od końca)
+        auctionSelectedCars
+          .sort((a, b) => b - a)
+          .forEach((i) => {
+            const car = garage[i];
+            packageItems.push({ type: "car", data: car });
+            packageName +=
+              (packageName ? " + " : "") + car.brand + " " + car.model;
+          });
+
+        // Jedzenie
+        auctionSelectedFood
+          .sort((a, b) => b - a)
+          .forEach((i) => {
+            const item = backpack[i];
+            packageItems.push({ type: "food", data: item });
+            const itemName = item.nameKey ? getItemName(item) : item.name;
+            packageName += (packageName ? " + " : "") + itemName;
+          });
+
+        // Ubezpieczenie (bez creationCost w danych)
+        if (auctionCustomInsurance) {
+          const insData = { ...auctionCustomInsurance };
+          delete insData.creationCost;
+          packageItems.push({ type: "customInsurance", data: insData });
+          packageName +=
+            (packageName ? " + " : "") + auctionCustomInsurance.name;
+        }
+
+        // Utwórz aukcję
+        const data = await getOnlineData();
+        if (!data.auctions) data.auctions = {};
+
+        const auctionId =
+          "auction_" +
+          Date.now() +
+          "_" +
+          Math.random().toString(36).substr(2, 6);
+        data.auctions[auctionId] = {
+          seller: playerName,
+          name: packageName,
+          items: packageItems,
+          price: price,
+          createdAt: Date.now(),
+          status: "active",
+          bids: [],
+          negotiations: [],
+        };
+
+        await saveOnlineData(data);
+
+        // Usuń przedmioty z inwentarza
+        auctionSelectedCars
+          .sort((a, b) => b - a)
+          .forEach((i) => {
+            garage.splice(i, 1);
+          });
+        auctionSelectedFood
+          .sort((a, b) => b - a)
+          .forEach((i) => {
+            backpack.splice(i, 1);
+          });
+
+        saveState();
+
+        // Reset
+        auctionSelectedCars = [];
+        auctionSelectedFood = [];
+        auctionCustomInsurance = null;
+
+        let resultMsg = `✅ ${
+          t.auctionCreated || "Wystawiono!"
+        }\n${packageName}`;
+        if (creationCost > 0) {
+          resultMsg += `\n💸 -${creationCost.toLocaleString()} ${getCurrency()}`;
+        }
+        alert(resultMsg);
+        updateAllDisplays();
+        await renderAuctionContent();
+      }
+
+      function getItemIcon(item) {
+        if (!item) return "📦";
+        if (item.type === "car") return "🚗";
+        if (item.type === "food") return item.data?.icon || "🍔";
+        if (item.type === "customInsurance") return "🛡️";
+        if (item.icon) return item.icon;
+        return "📦";
+      }
+
+      async function cancelAuction(auctionId) {
+        const t = translations[currentLang] || translations.en;
+
+        if (
+          !confirm(
+            t.confirmCancelAuction ||
+              "Anulować aukcję? Przedmioty wrócą do Ciebie."
+          )
+        ) {
+          return;
+        }
+
+        const data = await getOnlineData();
+        if (!data.auctions || !data.auctions[auctionId]) return;
+
+        const auction = data.auctions[auctionId];
+
+        // Sprawdź czy to Twoja aukcja
+        if (auction.seller !== playerName) {
+          alert(t.notYourAuction || "To nie Twoja aukcja!");
+          return;
+        }
+
+        // Zwróć przedmioty
+        const save = getCurrentSave();
+        if (!save.data.backpack) save.data.backpack = [];
+
+        if (auction.items) {
+          auction.items.forEach((item) => {
+            if (item.type === "car") {
+              garage.push(item.data);
+            } else if (item.type === "food") {
+              save.data.backpack.push(item.data);
+            }
+            // Ubezpieczenie przepada (opłata za stworzenie była pobrana)
+          });
+        }
+
+        // Usuń aukcję
+        delete data.auctions[auctionId];
+        await saveOnlineData(data);
+
+        saveState();
+        updateAllDisplays();
+
+        alert(`✅ ${t.auctionCancelled || "Aukcja anulowana!"}`);
+        await renderAuctionContent();
+      }
+
+      async function showAuctionDetail(auctionId) {
+        const t = translations[currentLang] || translations.en;
+        const data = await getOnlineData();
+        const auction = data.auctions[auctionId];
+        if (!auction) return;
+
+        // Generuj listę przedmiotów w pakiecie
+        let itemsHtml = "";
+        if (auction.items && auction.items.length > 0) {
+          itemsHtml = auction.items
+            .map((item) => {
+              if (item.type === "car") {
+                return `<div style="padding:8px;background:#222;border-radius:6px;margin-bottom:5px;">🚗 ${item.data.brand} ${item.data.model}</div>`;
+              } else if (item.type === "food") {
+                const itemName = item.data.nameKey
+                  ? t[item.data.nameKey] || item.data.nameKey
+                  : item.data.name;
+                const icon = item.data.icon || "🍔";
+                const kcal = item.data.kcal || item.data.food || 0;
+                const ml = item.data.ml || item.data.water || 0;
+                return `<div style="padding:8px;background:#222;border-radius:6px;margin-bottom:5px;">${icon} ${itemName} (+${kcal} 🍔 +${ml} 💧)</div>`;
+              } else if (item.type === "customInsurance") {
+                const ins = item.data;
+                return `<div style="padding:8px;background:#222;border-radius:6px;margin-bottom:5px;">
+                            🛡️ ${ins.name}<br>
+                            <span style="color:#888;font-size:0.85em;">
+                                ${ins.hp > 0 ? `+${ins.hp} HP ` : ""}${
+                  ins.food > 0 ? `+${ins.food} 🍔 ` : ""
+                }${ins.water > 0 ? `+${ins.water} 💧 ` : ""}${
+                  ins.coverage > 0
+                    ? `${ins.coverage}% ${t.repairs || "napraw"}`
+                    : ""
+                }<br>
+                                ${ins.payment} ${getCurrency()} / ${
+                  ins.interval
+                } min
+                            </span>
+                        </div>`;
+              }
+              return "";
+            })
+            .join("");
+        } else if (auction.item) {
+          // Stary format - pojedynczy przedmiot
+          itemsHtml = `<div style="padding:8px;background:#222;border-radius:6px;">${getItemIcon(
+            auction.item
+          )} ${
+            auction.item.name || auction.item.brand + " " + auction.item.model
+          }</div>`;
+        }
+
+        const content = document.getElementById("auctionDetailContent");
+        content.innerHTML = `
+                <h3>📦 ${auction.name || "Pakiet"}</h3>
+                <div style="background:#1a1a2e;padding:15px;border-radius:10px;margin:15px 0;">
+                    <div style="font-weight:bold;margin-bottom:10px;">${
+                      t.contents || "Zawartość"
+                    }:</div>
+                    ${itemsHtml}
+                    <div style="display:flex;justify-content:space-between;margin-top:15px;padding-top:10px;border-top:1px solid #333;">
+                        <span style="color:#888;">${
+                          t.seller || "Sprzedawca"
+                        }:</span>
+                        <span>${auction.seller}</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-top:8px;">
+                        <span style="color:#888;">${t.price || "Cena"}:</span>
+                        <span style="color:#10b981;font-weight:bold;font-size:1.2em;">${auction.price.toLocaleString()} ${getCurrency()}</span>
+                    </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <button onclick="buyAuctionItem('${auctionId}')" style="padding:15px;background:#10b981;color:white;border:none;border-radius:8px;cursor:pointer;font-size:1em;">
+                        💰 ${t.buyNow || "Kup teraz"}
+                    </button>
+                    <button onclick="showNegotiateModal('${auctionId}')" style="padding:15px;background:#f59e0b;color:white;border:none;border-radius:8px;cursor:pointer;font-size:1em;">
+                        🤝 ${t.negotiate || "Negocjuj cenę"}
+                    </button>
+                </div>
+            `;
+        openModal("auctionDetail");
+      }
+
+      let pendingAuctionId = null;
+
+      async function buyAuctionItem(auctionId) {
+        const t = translations[currentLang] || translations.en;
+        const data = await getOnlineData();
+        const auction = data.auctions[auctionId];
+
+        if (auction.price > limit) {
+          pendingAction = "buyAuction";
+          pendingAuctionId = auctionId;
+          closeModal("auctionDetail");
+          openModal("pin");
+          return;
+        }
+
+        await completePurchaseWithPin(auctionId);
+      }
+
+      async function completePurchaseWithPin(auctionId) {
+        const t = translations[currentLang] || translations.en;
+        const result = await acceptAuction(auctionId, pin);
+
+        if (result.success) {
+          money -= result.price;
+          spent += result.price;
+
+          const save = getCurrentSave();
+          if (!save.data.backpack) save.data.backpack = [];
+          if (!save.data.customInsurances) save.data.customInsurances = [];
+
+          // Dodaj przedmioty z pakietu
+          if (result.items && result.items.length > 0) {
+            result.items.forEach((item) => {
+              if (item.type === "car") {
+                garage.push(item.data);
+              } else if (item.type === "food") {
+                save.data.backpack.push(item.data);
+              } else if (item.type === "customInsurance") {
+                save.data.customInsurances.push(item.data);
+              }
+            });
+          } else if (result.item) {
+            // Stary format
+            if (result.item.type === "car") {
+              garage.push(result.item.item || result.item);
+            } else if (result.item.type === "food") {
+              save.data.backpack.push(result.item.item || result.item);
+            }
+          }
+
+          saveState();
+          updateAllDisplays();
+          closeModal("auctionDetail");
+          alert(`✅ ${t.purchaseSuccess || "Zakup udany!"}`);
+          await renderAuctionContent();
+        } else if (result.error === "noMoney") {
+          alert(t.notEnoughMoney || "Nie masz wystarczająco pieniędzy!");
+        }
+        pendingAuctionId = null;
+      }
+
+      async function forgotPinAuction() {
+        const t = translations[currentLang] || translations.en;
+        closeModal("pin");
+
+        if (pendingAuctionId) {
+          const data = await getOnlineData();
+          const auction = data.auctions[pendingAuctionId];
+
+          await sendNotification(auction.seller, {
+            type: "pinRequired",
+            from: playerName,
+            auctionId: pendingAuctionId,
+            amount: auction.price,
+            message: t.buyerForgotPin || "Kupujący nie pamięta PIN",
+          });
+
+          alert(t.waitingForSeller || "Wysłano prośbę do sprzedawcy...");
+        }
+        pendingAction = null;
+        pendingAuctionId = null;
+      }
+
+      async function showNegotiateModal(auctionId) {
+        const t = translations[currentLang] || translations.en;
+        const price = prompt(t.enterYourOffer || "Podaj swoją ofertę:");
+        if (!price) return;
+
+        const priceNum = parseInt(price);
+        if (isNaN(priceNum) || priceNum <= 0) return;
+
+        await negotiateAuction(auctionId, priceNum);
+        closeModal("auctionDetail");
+        alert(`✅ ${t.offerSent || "Wysłano ofertę!"}`);
+      }
+
+      async function allowWithoutPinUI(notifId, auctionId, buyerName) {
+        await allowWithoutPin(notifId, auctionId, buyerName);
+        renderNotifications();
+      }
+
+      async function denyWithoutPinUI(notifId, buyerName) {
+        await denyWithoutPin(notifId, buyerName);
+        renderNotifications();
+      }
+
+      async function respondNegotiation(notifId, auctionId, response) {
+        const data = await getOnlineData();
+        const auction = data.auctions[auctionId];
+        if (!auction) return;
+
+        const negIndex = auction.negotiations.length - 1;
+        await respondToNegotiation(auctionId, negIndex, response, null);
+        await removeNotification(notifId);
+        renderNotifications();
+      }
+
+      async function showCounterOffer(notifId, auctionId, fromPlayer) {
+        const t = translations[currentLang] || translations.en;
+        const price = prompt(t.enterCounterOffer || "Podaj kontr-ofertę:");
+        if (!price) return;
+
+        const priceNum = parseInt(price);
+        if (isNaN(priceNum) || priceNum <= 0) return;
+
+        const data = await getOnlineData();
+        const auction = data.auctions[auctionId];
+        const negIndex = auction.negotiations.length - 1;
+
+        await respondToNegotiation(auctionId, negIndex, "counter", priceNum);
+        await removeNotification(notifId);
+        renderNotifications();
+      }
+
       // ==================== INIT ====================
       function init() {
         ensureDefaultSave();
@@ -7535,6 +9783,31 @@
         startHungerTimer();
         startInsuranceTimer();
         checkUrlForVoucher();
+
+        // System online
+        if (playerName) {
+          startOnlineStatusUpdater();
+          checkNotifications();
+        }
+
+        // Event listenery dla modali
+        document
+          .getElementById("modalOnlineAccount")
+          ?.addEventListener("click", (e) => {
+            if (e.target.id === "modalOnlineAccount")
+              closeModal("onlineAccount");
+          });
+        document
+          .getElementById("modalNotifications")
+          ?.addEventListener("click", (e) => {
+            if (e.target.id === "modalNotifications")
+              closeModal("notifications");
+          });
+        document
+          .getElementById("modalAuction")
+          ?.addEventListener("click", (e) => {
+            if (e.target.id === "modalAuction") closeModal("auction");
+          });
       }
 
       function saveState() {
@@ -9146,7 +11419,7 @@
       }
 
       // ==================== MODALS ====================
-      function openModal(type) {
+      async function openModal(type) {
         document
           .getElementById(
             "modal" + type.charAt(0).toUpperCase() + type.slice(1)
@@ -9161,6 +11434,11 @@
         if (type === "pin") {
           currentPin = "";
           updatePinDisplay();
+          // Pokaż przycisk "Nie pamiętam" tylko dla aukcji
+          const forgotBtn = document.getElementById("forgotPinBtnContainer");
+          if (forgotBtn)
+            forgotBtn.style.display =
+              pendingAction === "buyAuction" ? "block" : "none";
         }
         if (type === "sell") {
           renderGarage();
@@ -9200,6 +11478,15 @@
         }
         if (type === "work") {
           renderJobsList();
+        }
+        if (type === "onlineAccount") {
+          await renderOnlineAccount();
+        }
+        if (type === "notifications") {
+          await renderNotifications();
+        }
+        if (type === "auction") {
+          await renderAuctionContent();
         }
       }
 
@@ -9276,6 +11563,8 @@
             updateAllDisplays();
             alert(`🚙 -${currentBuyPrice.toLocaleString()} ${getCurrency()}`);
             closeModal("buy");
+          } else if (pendingAction === "buyAuction" && pendingAuctionId) {
+            completePurchaseWithPin(pendingAuctionId);
           }
           pendingAction = null;
           closeModal("pin");
