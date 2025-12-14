@@ -9147,7 +9147,7 @@
           updatePlayerStatus();
           checkNotifications();
 
-          // Sprawdzaj co 5 sekund
+          // Sprawdzaj co 3 sekundy
           if (notificationInterval) clearInterval(notificationInterval);
           notificationInterval = setInterval(() => {
             if (playerName) {
@@ -9155,12 +9155,18 @@
               checkNotifications();
 
               // Jeśli modal powiadomień jest otwarty, odśwież listę
-              const modal = document.getElementById("modalNotifications");
-              if (modal && modal.classList.contains("active")) {
+              const modalNotif = document.getElementById("modalNotifications");
+              if (modalNotif && modalNotif.classList.contains("active")) {
                 renderNotifications();
               }
+
+              // Jeśli modal aukcji jest otwarty, odśwież listę
+              const modalAuction = document.getElementById("modalAuction");
+              if (modalAuction && modalAuction.classList.contains("active")) {
+                renderAuctionList();
+              }
             }
-          }, 5000);
+          }, 3000);
         }
       }
 
