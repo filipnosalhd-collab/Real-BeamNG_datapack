@@ -3160,6 +3160,7 @@
           invalidAmount: "Wprowadź prawidłową kwotę!",
           pendingVoucher: "Wysłano - oczekuje",
           cancelVoucherConfirm: "Anulować bon?",
+          voucherAlreadyUsed: "Ten bon został już wykorzystany!",
           shareTo: "Udostępnij do:",
           sendToOtherSave: "Lub wyślij na inny zapis:",
           voucherSentToSave: "Bon wysłany do",
@@ -3515,6 +3516,7 @@
           invalidAmount: "Enter a valid amount!",
           pendingVoucher: "Sent - waiting",
           cancelVoucherConfirm: "Cancel voucher?",
+          voucherAlreadyUsed: "This voucher has already been used!",
           shareTo: "Share to:",
           sendToOtherSave: "Or send to another save:",
           voucherSentToSave: "Voucher sent to",
@@ -6137,14 +6139,20 @@
           message: v.message,
           fromSave: v.fromSave,
           fromSaveId: v.fromSaveId,
+          gameMode: v.gameMode || gameMode, // Dodaj tryb gry
           receivedAt: Date.now(),
+          isLocal: true, // Oznacz że wysłane lokalnie (można anulować)
         });
 
         localStorage.setItem("beamng_saves", JSON.stringify(saves));
 
-        alert(
-          `${t.voucherSentToSave || "Bon wysłany do"} "${targetSave.name}"!`
-        );
+        const voucherName =
+          (v.gameMode || gameMode) === "reallife"
+            ? currentLang === "pl"
+              ? "Kupon wysłany do"
+              : "Coupon sent to"
+            : t.voucherSentToSave || "Bon wysłany do";
+        alert(`${voucherName} "${targetSave.name}"!`);
         closeModal("shareVoucher");
         renderVouchersList();
       }
@@ -6217,8 +6225,32 @@
       }
 
       // Sprawdź czy w URL jest bon do odebrania
+      // Lista wykorzystanych bonów (zapisywana w localStorage)
+      function getUsedVoucherIds() {
+        try {
+          return JSON.parse(
+            localStorage.getItem("beamng_used_vouchers") || "[]"
+          );
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function markVoucherAsUsed(voucherId) {
+        const used = getUsedVoucherIds();
+        if (!used.includes(voucherId)) {
+          used.push(voucherId);
+          localStorage.setItem("beamng_used_vouchers", JSON.stringify(used));
+        }
+      }
+
+      function isVoucherUsed(voucherId) {
+        return getUsedVoucherIds().includes(voucherId);
+      }
+
       function checkUrlForVoucher() {
         const urlParams = new URLSearchParams(window.location.search);
+        const t = translations[currentLang] || translations.en;
 
         // Nowy format: ?vid=...&amount=...&from=...&fromId=...&mode=...
         const vid = urlParams.get("vid");
@@ -6229,6 +6261,19 @@
         const mode = urlParams.get("mode"); // Tryb gry bonu
 
         if (vid && amount && fromId) {
+          // Usuń parametry z URL od razu
+          window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+          );
+
+          // Sprawdź czy bon był już użyty
+          if (isVoucherUsed(vid)) {
+            alert(t.voucherAlreadyUsed || "Ten bon został już wykorzystany!");
+            return;
+          }
+
           const voucher = {
             id: vid,
             amount: parseInt(amount),
@@ -6236,15 +6281,9 @@
             fromSaveId: fromId,
             message: msg || "",
             gameMode: mode || "beamng", // Domyślnie beamng dla starych linków
+            isFromLink: true, // Oznacz że pochodzi z linku
           };
           showReceivedVoucherModal(voucher);
-
-          // Usuń parametry z URL
-          window.history.replaceState(
-            {},
-            document.title,
-            window.location.pathname
-          );
         }
       }
 
@@ -6309,6 +6348,11 @@
         const save = getCurrentSave();
         const t = translations[currentLang] || translations.en;
         const voucherMode = voucher.gameMode || "beamng";
+
+        // Oznacz bon jako wykorzystany (jeśli z linku)
+        if (voucher.isFromLink) {
+          markVoucherAsUsed(voucher.id);
+        }
 
         // Znajdź save nadawcy (jeśli na tym samym urządzeniu)
         const senderSave = saves.find((s) => s.id === voucher.fromSaveId);
@@ -6385,17 +6429,33 @@
         const voucher = window.tempReceivedVoucher;
         const save = getCurrentSave();
 
-        voucher.fromSave = save.name;
-        voucher.fromSaveId = save.id;
+        // Oznacz stary bon jako wykorzystany (jeśli z linku)
+        if (voucher.isFromLink) {
+          markVoucherAsUsed(voucher.id);
+        }
+
+        // Utwórz nowy bon z nowym ID (bo przekazujesz dalej)
+        const newVoucher = {
+          id:
+            "bon_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6),
+          amount: voucher.amount,
+          message: voucher.message,
+          createdAt: Date.now(),
+          fromSave: save.name,
+          fromSaveId: save.id,
+          gameMode: voucher.gameMode || gameMode,
+          originalFrom: voucher.fromSave, // Zachowaj info o oryginalnym nadawcy
+        };
+
         if (!save.data.vouchersToSend) save.data.vouchersToSend = [];
-        save.data.vouchersToSend.push(voucher);
+        save.data.vouchersToSend.push(newVoucher);
 
         saveSaveData();
         closeModal("voucherPreview");
 
         // Od razu otwórz udostępnianie
         currentVoucherToShare = {
-          voucher,
+          voucher: newVoucher,
           index: save.data.vouchersToSend.length - 1,
           source: "toSend",
         };
@@ -9135,7 +9195,7 @@
         }
       }
 
-      // ==================== JĘZYKI =========================
+      // ==================== JĘZYKI ====================
       function generateLangGrid() {
         const grid = document.getElementById("langGrid");
         grid.innerHTML = "";
