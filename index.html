@@ -3168,12 +3168,26 @@
           pendingVoucher: "Wysłano - oczekuje",
           cancelVoucherConfirm: "Anulować bon?",
           voucherAlreadyUsed: "Ten bon został już wykorzystany!",
+          voucherExpired:
+            "Ten link wygasł! Bony są ważne tylko 10 minut od wysłania.",
           cantReceiveOwnVoucher: "Nie możesz odebrać własnego bonu!",
           sent: "wysłany",
           total: "łącznie",
           shippingFee: "opłata za przesyłkę",
-          shippingInfo: "Wysyłka online: +100 zł opłaty",
+          shippingInfo: "Wysyłka online: +100 zł | Link jednorazowy!",
           noShippingFee: "Bez opłaty za przesyłkę",
+          // Logowanie
+          loginTitle: "Zaloguj się",
+          loginDesc:
+            "Podaj swój email żeby móc wysyłać i odbierać bony/kupony.",
+          loginBtn: "Zaloguj",
+          loginPrivacy:
+            "Email jest zapisywany tylko lokalnie na Twoim urządzeniu.",
+          invalidEmail: "Podaj prawidłowy email!",
+          loggedInAs: "Zalogowany jako",
+          sameEmailVoucher:
+            "Nie możesz odebrać bonu wysłanego z tego samego konta!",
+          mustLoginFirst: "Musisz się najpierw zalogować!",
           shareTo: "Udostępnij do:",
           sendToOtherSave: "Lub wyślij na inny zapis:",
           voucherSentToSave: "Bon wysłany do",
@@ -3537,12 +3551,24 @@
           pendingVoucher: "Sent - waiting",
           cancelVoucherConfirm: "Cancel voucher?",
           voucherAlreadyUsed: "This voucher has already been used!",
+          voucherExpired:
+            "This link has expired! Vouchers are valid for 10 minutes only.",
           cantReceiveOwnVoucher: "You cannot receive your own voucher!",
           sent: "sent",
           total: "total",
           shippingFee: "shipping fee",
-          shippingInfo: "Online shipping: +100 fee",
+          shippingInfo: "Online: +100 fee | One-time link!",
           noShippingFee: "No shipping fee",
+          // Login
+          loginTitle: "Log in",
+          loginDesc: "Enter your email to send and receive vouchers/coupons.",
+          loginBtn: "Log in",
+          loginPrivacy: "Email is saved only locally on your device.",
+          invalidEmail: "Enter a valid email!",
+          loggedInAs: "Logged in as",
+          sameEmailVoucher:
+            "You cannot receive a voucher sent from the same account!",
+          mustLoginFirst: "You must log in first!",
           shareTo: "Share to:",
           sendToOtherSave: "Or send to another save:",
           voucherSentToSave: "Voucher sent to",
@@ -6091,13 +6117,14 @@
 
       function getVoucherLink(voucher) {
         // Generuj czytelny link z parametrami
-        const baseUrl = window.location.href.split("?")[0].split("#")[0];
+        const baseUrl =
+          "https://filipnosalhd-collab.github.io/Real-BeamNG_datapack/";
         const params = new URLSearchParams();
         params.set("vid", voucher.id);
         params.set("amount", voucher.amount);
         params.set("from", voucher.fromSave);
         params.set("fromId", voucher.fromSaveId);
-        params.set("mode", voucher.gameMode || gameMode); // Dodaj tryb gry
+        params.set("mode", voucher.gameMode || gameMode);
         if (voucher.message) params.set("msg", voucher.message);
         return baseUrl + "?" + params.toString();
       }
@@ -6340,13 +6367,12 @@
         const urlParams = new URLSearchParams(window.location.search);
         const t = translations[currentLang] || translations.en;
 
-        // Nowy format: ?vid=...&amount=...&from=...&fromId=...&mode=...
         const vid = urlParams.get("vid");
         const amount = urlParams.get("amount");
         const from = urlParams.get("from");
         const fromId = urlParams.get("fromId");
         const msg = urlParams.get("msg");
-        const mode = urlParams.get("mode"); // Tryb gry bonu
+        const mode = urlParams.get("mode");
 
         if (vid && amount && fromId) {
           // Usuń parametry z URL od razu
@@ -6356,7 +6382,7 @@
             window.location.pathname
           );
 
-          // Sprawdź czy bon był już użyty
+          // Sprawdź czy bon był już użyty (link jednorazowy!)
           if (isVoucherUsed(vid)) {
             alert(t.voucherAlreadyUsed || "Ten bon został już wykorzystany!");
             return;
@@ -6371,7 +6397,6 @@
             return;
           }
 
-          // Sprawdź też czy ten save nie był nadawcą tego bonu (przez markVoucherAsUsed)
           if (isVoucherUsed(vid + "_sender_" + (save ? save.id : ""))) {
             alert(
               t.cantReceiveOwnVoucher || "Nie możesz odebrać własnego bonu!"
@@ -6385,8 +6410,8 @@
             fromSave: from || "?",
             fromSaveId: fromId,
             message: msg || "",
-            gameMode: mode || "beamng", // Domyślnie beamng dla starych linków
-            isFromLink: true, // Oznacz że pochodzi z linku
+            gameMode: mode || "beamng",
+            isFromLink: true,
           };
           showReceivedVoucherModal(voucher);
         }
@@ -7509,7 +7534,7 @@
         startTaxTimer();
         startHungerTimer();
         startInsuranceTimer();
-        checkUrlForVoucher(); // Sprawdź czy ktoś wysłał bon przez link
+        checkUrlForVoucher();
       }
 
       function saveState() {
@@ -8228,16 +8253,7 @@
         // Sprawdź śmierć
         checkDeath();
 
-        // Ostrzeżenie gdy niski poziom
-        if (food <= 100 && food > 0) {
-          console.log("⚠️ Głodujesz!");
-        }
-        if (water <= 100 && water > 0) {
-          console.log("⚠️ Chcesz pić!");
-        }
-        if (health <= 20 && health > 0) {
-          console.log("⚠️ Niskie zdrowie!");
-        }
+        // Ostrzeżenie gdy niski poziom - ciche
       }
 
       function checkDeath() {
