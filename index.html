@@ -3045,7 +3045,7 @@
     <!-- Modal Czat -->
     <div class="modal" id="modalChat">
       <div class="modal-content" style="max-width: 500px">
-        <span class="close" onclick="closeModal('chat')">&times;</span>
+        <span class="close" onclick="closeChatModal()">&times;</span>
         <h2>
           💬 <span data-translate="chatWith">Czat z</span>
           <span id="chatWithName"></span>
@@ -3061,6 +3061,16 @@
             margin-bottom: 10px;
           "
         ></div>
+        <p
+          style="
+            color: #888;
+            font-size: 0.75em;
+            margin-bottom: 5px;
+            text-align: center;
+          "
+        >
+          💰 Koszt wiadomości: 5,50 zł/$
+        </p>
         <div style="display: flex; gap: 10px">
           <input
             type="text"
@@ -3524,6 +3534,11 @@
           loggedIn: "Zalogowano!",
           playerNotFound: "Nie znaleziono gracza",
           deleteAccount: "Usuń konto",
+          addFriend: "Dodaj znajomego",
+          friends: "Znajomi",
+          noFriends: "Brak znajomych",
+          sendToFriend: "Wyślij do znajomego",
+          noFriendsToSend: "Brak znajomych. Dodaj znajomych w Konto Online!",
           wrongPin: "Błędny PIN!",
           loginFirst: "Najpierw się zaloguj",
           noNotifications: "Brak powiadomień",
@@ -3604,7 +3619,14 @@
           allPlayers: "Wszyscy gracze",
           noPlayersYet: "Brak innych graczy",
           findPlayer: "Znajdź gracza",
-          nameOrCardNumber: "Nazwa lub numer karty...",
+          nameOrCardNumber: "Numer karty (6 cyfr)...",
+          cardNumber: "Numer karty",
+          wantsToBeYourFriend: "chce dodać Cię do znajomych!",
+          acceptedYourFriendRequest:
+            "zaakceptował zaproszenie! Jesteście znajomymi.",
+          rejectedYourFriendRequest: "odrzucił zaproszenie do znajomych",
+          accept: "Akceptuj",
+          reject: "Odrzuć",
           playerNotFound: "Nie znaleziono gracza",
           cantReceiveOwnVoucher: "Nie możesz odebrać własnego bonu!",
           sent: "wysłany",
@@ -4015,6 +4037,11 @@
           loggedIn: "Logged in!",
           playerNotFound: "Player not found",
           deleteAccount: "Delete account",
+          addFriend: "Add friend",
+          friends: "Friends",
+          noFriends: "No friends",
+          sendToFriend: "Send to friend",
+          noFriendsToSend: "No friends. Add friends in Online Account!",
           wrongPin: "Wrong PIN!",
           loginFirst: "Log in first",
           noNotifications: "No notifications",
@@ -4096,7 +4123,14 @@
           allPlayers: "All players",
           noPlayersYet: "No other players yet",
           findPlayer: "Find player",
-          nameOrCardNumber: "Name or card number...",
+          nameOrCardNumber: "Card number (6 digits)...",
+          cardNumber: "Card number",
+          wantsToBeYourFriend: "wants to add you as a friend!",
+          acceptedYourFriendRequest:
+            "accepted your invite! You are now friends.",
+          rejectedYourFriendRequest: "rejected your friend request",
+          accept: "Accept",
+          reject: "Reject",
           playerNotFound: "Player not found",
           cantReceiveOwnVoucher: "You cannot receive your own voucher!",
           sent: "sent",
@@ -4235,7 +4269,7 @@
           createdAt: Date.now(),
           data: {
             money: 1500,
-            cardCode: generateCardCode(),
+            cardCode: generateCardCodeSync(),
             limit: 10000,
             spent: 0,
             debt: 0,
@@ -4280,7 +4314,7 @@
 
         // Załaduj dane wspólne (karta, PIN, limit, autoPay, lastTaxTime)
         const d = save.data;
-        cardCode = d.cardCode || generateCardCode();
+        cardCode = d.cardCode || generateCardCodeSync();
         pin = cardCode;
         limit = d.limit || 10000;
         autoPay = d.autoPay || false;
@@ -4703,7 +4737,7 @@
 
       // ==================== STAN GRY ====================
       let money = 1500;
-      let cardCode = generateCardCode();
+      let cardCode = generateCardCodeSync();
       let pin = cardCode;
       let limit = 10000;
       let spent = 0;
@@ -6611,52 +6645,42 @@
         // Lista innych save'ów (nie aktualny)
         const otherSaves = saves.filter((s) => s.id !== currentSaveId);
 
-        // Pobierz WSZYSTKICH graczy (nie tylko online)
-        const allPlayers = playerName ? await getAllPlayers() : [];
+        // Pobierz TYLKO znajomych
+        const friends = playerName ? await getFriends() : [];
 
         buttonsDiv.innerHTML = `
                 ${
                   playerName
                     ? `
-                    <p style="margin-bottom:5px;font-weight:bold;">🌐 ${
-                      t.sendToPlayer || "Wyślij do gracza:"
+                    <p style="margin-bottom:5px;font-weight:bold;">⭐ ${
+                      t.sendToFriend || "Wyślij do znajomego:"
                     }</p>
+                    <p style="color:#f59e0b;font-size:0.8em;margin-bottom:10px;">💰 Opłata: 5% wartości bonu</p>
                     
-                    <!-- Pole do wpisania nazwy -->
-                    <div style="display:flex;gap:8px;margin-bottom:10px;">
-                        <input type="text" id="voucherRecipientInput" placeholder="${
-                          t.enterPlayerName || "Wpisz nazwę gracza..."
-                        }" oninput="filterVoucherPlayers()" style="flex:1;padding:12px;background:#222;border:1px solid #333;border-radius:8px;color:white;">
-                        <button onclick="sendVoucherToPlayerByName()" style="padding:12px 20px;background:#3b82f6;color:white;border:none;border-radius:8px;cursor:pointer;">📤</button>
-                    </div>
-                    
-                    <div id="voucherPlayersList" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;margin-bottom:15px;">
+                    <div id="voucherPlayersList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;margin-bottom:15px;">
                         ${
-                          allPlayers.length > 0
-                            ? allPlayers
+                          friends.length > 0
+                            ? friends
                                 .map(
-                                  (p) => `
-                            <button class="voucher-player-btn" data-name="${p.name.toLowerCase()}" onclick="sendVoucherToPlayer('${
-                                    p.name
-                                  }')" style="padding:10px;background:${
-                                    p.online ? "#2a4a2a" : "#222"
+                                  (f) => `
+                            <button onclick="sendVoucherToPlayer('${
+                              f.name
+                            }')" style="padding:12px;background:${
+                                    f.online ? "#2a4a2a" : "#222"
                                   };color:white;border:1px solid ${
-                                    p.online ? "#10b981" : "#333"
+                                    f.online ? "#10b981" : "#333"
                                   };border-radius:8px;cursor:pointer;font-size:0.95em;text-align:left;display:flex;justify-content:space-between;align-items:center;">
-                                <span>${p.online ? "🟢" : "⚫"} ${p.name}</span>
+                                <span>${f.online ? "🟢" : "⚫"} ${f.name}</span>
                                 <span style="color:#888;font-size:0.8em;">${
-                                  p.online
-                                    ? p.gameMode === "beamng"
-                                      ? "🚗"
-                                      : "🏠"
-                                    : ""
+                                  f.online ? "🟢 Online" : ""
                                 }</span>
                             </button>
                         `
                                 )
                                 .join("")
-                            : `<p style="color:#666;text-align:center;padding:10px;">${
-                                t.noPlayersYet || "Brak innych graczy"
+                            : `<p style="color:#666;text-align:center;padding:15px;">${
+                                t.noFriendsToSend ||
+                                "Brak znajomych. Dodaj znajomych w Konto Online żeby wysyłać bony!"
                               }</p>`
                         }
                     </div>
@@ -6744,6 +6768,24 @@
         const save = getCurrentSave();
         const t = translations[currentLang] || translations.en;
 
+        // Opłata 5% wartości bonu
+        const fee = Math.ceil(v.amount * 0.05);
+
+        // Sprawdź czy stać na opłatę
+        if (save.data.money < fee) {
+          showToast(
+            `❌ ${
+              t.notEnoughForFee || "Brak środków na opłatę"
+            } (${fee.toLocaleString()} ${getCurrency()})`
+          );
+          return;
+        }
+
+        // Pobierz opłatę
+        save.data.money -= fee;
+        saveSaveData();
+        updateAllDisplays();
+
         // Wyślij powiadomienie do gracza
         await sendNotification(toPlayerName, {
           type: "voucher",
@@ -6761,7 +6803,11 @@
 
         saveSaveData();
 
-        alert(`✅ ${t.voucherSentTo || "Bon wysłany do"} ${toPlayerName}!`);
+        showToast(
+          `✅ ${
+            t.voucherSentTo || "Bon wysłany do"
+          } ${toPlayerName}! (opłata: ${fee.toLocaleString()} ${getCurrency()})`
+        );
         closeModal("shareVoucher");
         renderVouchersList();
       }
@@ -7109,18 +7155,36 @@
         const data = await getOnlineData();
         if (!data.players) data.players = {};
 
-        // Sprawdź czy nazwa jest zajęta (przez aktywne konto)
+        // Sprawdź czy nazwa jest zajęta
         if (data.players[name]) {
           showLoginError("Ta nazwa jest już zajęta!");
           return;
         }
 
+        // Pobierz numer karty i sprawdź unikalność
+        const save = getCurrentSave();
+        let cardNum = save?.data?.cardCode || null;
+
+        // Sprawdź czy numer karty jest unikalny
+        if (cardNum) {
+          for (const [pName, player] of Object.entries(data.players)) {
+            if (player.cardNumber === cardNum) {
+              // Numer zajęty - wygeneruj nowy unikalny
+              cardNum = await generateCardCode();
+              // Zapisz nowy numer w save
+              if (save && save.data) {
+                save.data.cardCode = cardNum;
+                cardCode = cardNum;
+                saveSaveData();
+              }
+              break;
+            }
+          }
+        }
+
         // Zarejestruj gracza
         playerName = name;
         localStorage.setItem("beamng_player_name", playerName);
-
-        const save = getCurrentSave();
-        const cardNum = save?.data?.card?.number || null;
 
         data.players[playerName] = {
           passwordHash: hashPassword(password),
@@ -7301,7 +7365,7 @@
         const data = await getOnlineData();
         if (data.players && data.players[playerName]) {
           const save = getCurrentSave();
-          const cardNum = save?.data?.card?.number || null;
+          const cardNum = save?.data?.cardCode || null;
 
           data.players[playerName].online = true;
           data.players[playerName].lastSeen = Date.now();
@@ -9014,82 +9078,67 @@
                     </div>
                 `;
         } else {
-          const onlinePlayers = await getOnlinePlayers();
-          const allPlayers = await getAllPlayers();
+          const friends = await getFriends();
+          const save = getCurrentSave();
+          const myCardNumber = save?.data?.cardCode || "---";
 
           content.innerHTML = `
                     <div style="text-align:center;margin-bottom:20px;">
                         <div style="font-size:3em;margin-bottom:10px;">👤</div>
                         <div style="font-size:1.3em;font-weight:bold;">${playerName}</div>
                         <div style="color:#10b981;font-size:0.9em;">🟢 Online</div>
+                        <div style="color:#888;font-size:0.75em;margin-top:8px;">💳 Twój numer karty:</div>
+                        <div style="color:#4ade80;font-size:0.85em;font-family:monospace;background:#222;padding:5px 10px;border-radius:5px;display:inline-block;margin-top:3px;">${myCardNumber}</div>
                     </div>
                     
-                    <!-- Szukaj gracza po nazwie lub numerze karty -->
+                    <!-- Dodaj znajomego -->
                     <div style="background:#1a1a2e;padding:15px;border-radius:10px;margin-bottom:15px;">
-                        <div style="font-weight:bold;margin-bottom:10px;">🔍 ${
-                          t.findPlayer || "Znajdź gracza"
+                        <div style="font-weight:bold;margin-bottom:10px;">➕ ${
+                          t.addFriend || "Dodaj znajomego"
                         }</div>
                         <div style="display:flex;gap:8px;">
-                            <input type="text" id="findPlayerInput" placeholder="${
-                              t.nameOrCardNumber || "Nazwa lub numer karty..."
-                            }" style="flex:1;padding:10px;background:#222;border:1px solid #333;border-radius:6px;color:white;">
-                            <button onclick="findAndChatPlayer()" style="padding:10px 15px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;">💬</button>
+                            <input type="text" id="addFriendInput" placeholder="${
+                              t.nameOrCardNumber || "Numer karty (6 cyfr)..."
+                            }" maxlength="6" style="flex:1;padding:10px;background:#222;border:1px solid #333;border-radius:6px;color:white;font-family:monospace;text-align:center;font-size:1.1em;">
+                            <button onclick="addFriend()" style="padding:10px 15px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;">➕</button>
                         </div>
+                        <p style="color:#666;font-size:0.75em;margin-top:8px;">Poproś znajomego o jego numer karty</p>
                     </div>
                     
+                    <!-- Lista znajomych -->
                     <div style="background:#1a1a2e;padding:15px;border-radius:10px;margin-bottom:15px;">
-                        <div style="font-weight:bold;margin-bottom:10px;">👥 ${
-                          t.onlinePlayers || "Gracze online"
-                        }: ${onlinePlayers.length}</div>
+                        <div style="font-weight:bold;margin-bottom:10px;">⭐ ${
+                          t.friends || "Znajomi"
+                        }: ${friends.length}</div>
                         ${
-                          onlinePlayers.length > 0
-                            ? onlinePlayers
-                                .map(
-                                  (p) => `
-                            <div onclick="openChat('${
-                              p.name
-                            }')" style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#222;border-radius:6px;margin-bottom:5px;cursor:pointer;">
-                                <span>🟢 ${p.name}</span>
-                                <span style="color:#888;font-size:0.8em;">${
-                                  p.gameMode === "reallife" ? "🌍" : "🚗"
-                                }</span>
+                          friends.length > 0
+                            ? `
+                            <div style="max-height:200px;overflow-y:auto;">
+                                ${friends
+                                  .map(
+                                    (f) => `
+                                    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#222;border-radius:6px;margin-bottom:5px;">
+                                        <span style="flex:1;">${
+                                          f.online ? "🟢" : "⚫"
+                                        } ${f.name}</span>
+                                        <div style="display:flex;gap:5px;">
+                                            <button onclick="openChat('${
+                                              f.name
+                                            }')" style="padding:6px 12px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.85em;">💬</button>
+                                            <button onclick="removeFriend('${
+                                              f.name
+                                            }')" style="padding:6px 12px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.85em;">✖</button>
+                                        </div>
+                                    </div>
+                                `
+                                  )
+                                  .join("")}
                             </div>
                         `
-                                )
-                                .join("")
-                            : `<div style="color:#666;">${
-                                t.noPlayersOnline || "Brak graczy online"
-                              }</div>`
+                            : `<div style="color:#666;text-align:center;padding:15px;">${
+                                t.noFriends || "Brak znajomych"
+                              }<br><span style="font-size:0.85em;">Dodaj znajomych wpisując ich numer karty!</span></div>`
                         }
-                    </div>
-                    
-                    <div style="background:#1a1a2e;padding:15px;border-radius:10px;margin-bottom:15px;">
-                        <div style="font-weight:bold;margin-bottom:10px;">📊 ${
-                          t.allPlayers || "Wszyscy gracze"
-                        }: ${allPlayers.length}</div>
-                        <div style="max-height:150px;overflow-y:auto;">
-                            ${allPlayers
-                              .slice(0, 20)
-                              .map(
-                                (p) => `
-                                <div onclick="openChat('${
-                                  p.name
-                                }')" style="display:flex;justify-content:space-between;align-items:center;padding:6px;background:#222;border-radius:4px;margin-bottom:3px;cursor:pointer;font-size:0.9em;">
-                                    <span>${p.online ? "🟢" : "⚫"} ${
-                                  p.name
-                                }</span>
-                                </div>
-                            `
-                              )
-                              .join("")}
-                            ${
-                              allPlayers.length > 20
-                                ? `<div style="color:#666;text-align:center;padding:5px;">...i ${
-                                    allPlayers.length - 20
-                                  } więcej</div>`
-                                : ""
-                            }
-                        </div>
                     </div>
                     
                     <button onclick="logoutPlayer()" style="width:100%;padding:12px;background:#3b82f6;color:white;border:none;border-radius:8px;cursor:pointer;margin-bottom:10px;">
@@ -9102,41 +9151,231 @@
         }
       }
 
-      async function findAndChatPlayer() {
-        const input = document.getElementById("findPlayerInput");
-        const query = input.value.trim();
-        const t = translations[currentLang] || translations.en;
-
-        if (!query) return;
-
+      // ========== SYSTEM ZNAJOMYCH ==========
+      async function getFriends() {
         const data = await getOnlineData();
-        if (!data.players) {
-          alert(t.playerNotFound || "Nie znaleziono gracza");
+        if (
+          !data.players ||
+          !data.players[playerName] ||
+          !data.players[playerName].friends
+        ) {
+          return [];
+        }
+
+        const friendNames = data.players[playerName].friends;
+        const now = Date.now();
+        const ONLINE_TIMEOUT = 2 * 60 * 1000;
+
+        return friendNames
+          .map((name) => {
+            const player = data.players[name];
+            return {
+              name,
+              online: player
+                ? player.online && now - player.lastSeen < ONLINE_TIMEOUT
+                : false,
+            };
+          })
+          .sort((a, b) => {
+            if (a.online && !b.online) return -1;
+            if (!a.online && b.online) return 1;
+            return a.name.localeCompare(b.name);
+          });
+      }
+
+      async function addFriend() {
+        const input = document.getElementById("addFriendInput");
+        const cardNumber = input.value.trim();
+        if (!cardNumber) return;
+
+        if (cardNumber.length !== 6 || !/^\d+$/.test(cardNumber)) {
+          showToast("❌ Wpisz 6-cyfrowy numer karty");
           return;
         }
 
+        const friendName = await findPlayerByCardNumber(cardNumber);
+        if (!friendName) {
+          showToast("❌ Nie znaleziono gracza z tym numerem karty");
+          return;
+        }
+
+        if (friendName === playerName) {
+          showToast("❌ Nie możesz dodać siebie");
+          return;
+        }
+
+        // Sprawdź czy już są znajomymi
+        const data = await getOnlineData();
+        if (data.players[playerName]?.friends?.includes(friendName)) {
+          showToast("ℹ️ Już jest znajomym");
+          return;
+        }
+
+        // Sprawdź czy już wysłano zaproszenie
+        if (data.notifications && data.notifications[friendName]) {
+          const pending = data.notifications[friendName].find(
+            (n) =>
+              n.type === "friendRequest" && n.from === playerName && !n.read
+          );
+          if (pending) {
+            showToast("ℹ️ Zaproszenie już wysłane");
+            return;
+          }
+        }
+
+        // Wyślij zaproszenie do znajomych
+        await sendNotification(friendName, {
+          type: "friendRequest",
+          from: playerName,
+          message: `${playerName} chce dodać Cię do znajomych!`,
+        });
+
+        showToast(`📤 Wysłano zaproszenie do ${friendName}`);
+        input.value = "";
+      }
+
+      async function acceptFriendRequest(notifId, fromPlayer) {
+        const data = await getOnlineData();
+
+        // Dodaj do znajomych u obu graczy
+        if (!data.players[playerName].friends)
+          data.players[playerName].friends = [];
+        if (!data.players[fromPlayer].friends)
+          data.players[fromPlayer].friends = [];
+
+        if (!data.players[playerName].friends.includes(fromPlayer)) {
+          data.players[playerName].friends.push(fromPlayer);
+        }
+        if (!data.players[fromPlayer].friends.includes(playerName)) {
+          data.players[fromPlayer].friends.push(playerName);
+        }
+
+        // Oznacz powiadomienie jako przeczytane
+        if (data.notifications[playerName]) {
+          const notif = data.notifications[playerName].find(
+            (n) => n.id === notifId
+          );
+          if (notif) notif.read = true;
+        }
+
+        await saveOnlineData(data);
+
+        // Wyślij potwierdzenie
+        await sendNotification(fromPlayer, {
+          type: "friendAccepted",
+          from: playerName,
+          message: `${playerName} zaakceptował Twoje zaproszenie!`,
+        });
+
+        showToast(`✅ ${fromPlayer} dodany do znajomych!`);
+        renderNotifications();
+      }
+
+      async function rejectFriendRequest(notifId, fromPlayer) {
+        const data = await getOnlineData();
+
+        // Oznacz powiadomienie jako przeczytane
+        if (data.notifications[playerName]) {
+          const notif = data.notifications[playerName].find(
+            (n) => n.id === notifId
+          );
+          if (notif) notif.read = true;
+        }
+
+        await saveOnlineData(data);
+
+        // Wyślij info o odrzuceniu
+        await sendNotification(fromPlayer, {
+          type: "friendRejected",
+          from: playerName,
+          message: `${playerName} odrzucił Twoje zaproszenie`,
+        });
+
+        showToast(`❌ Zaproszenie odrzucone`);
+        renderNotifications();
+      }
+
+      async function removeFriend(friendName) {
+        const data = await getOnlineData();
+        if (
+          !data.players ||
+          !data.players[playerName] ||
+          !data.players[playerName].friends
+        )
+          return;
+
+        // Usuń u obu graczy
+        data.players[playerName].friends = data.players[
+          playerName
+        ].friends.filter((f) => f !== friendName);
+        if (data.players[friendName]?.friends) {
+          data.players[friendName].friends = data.players[
+            friendName
+          ].friends.filter((f) => f !== playerName);
+        }
+
+        await saveOnlineData(data);
+
+        showToast(`🗑️ Usunięto ${friendName} ze znajomych`);
+        renderOnlineAccount();
+      }
+
+      async function findPlayerByCardNumber(cardNumber) {
+        const data = await getOnlineData();
+        if (!data.players) return null;
+
+        // Szukaj tylko po numerze karty
+        for (const [name, player] of Object.entries(data.players)) {
+          if (player.cardNumber === cardNumber) {
+            return name;
+          }
+        }
+
+        return null;
+      }
+
+      // Dla bonów - szukaj po nazwie LUB numerze karty
+      async function findPlayerByNameOrCard(query) {
+        const data = await getOnlineData();
+        if (!data.players) return null;
+
         // Szukaj po nazwie
         if (data.players[query]) {
-          openChat(query);
-          input.value = "";
-          closeModal("onlineAccount");
-          return;
+          return query;
         }
 
         // Szukaj po numerze karty
         for (const [name, player] of Object.entries(data.players)) {
           if (player.cardNumber === query) {
-            openChat(name);
-            input.value = "";
-            closeModal("onlineAccount");
-            return;
+            return name;
           }
         }
 
-        alert(
-          t.playerNotFound ||
-            "Nie znaleziono gracza o tej nazwie lub numerze karty"
-        );
+        return null;
+      }
+
+      async function findAndChatPlayer() {
+        const input = document.getElementById("findPlayerInput");
+        const cardNumber = input.value.trim();
+        const t = translations[currentLang] || translations.en;
+
+        if (!cardNumber) return;
+
+        if (cardNumber.length !== 16 || !/^\d+$/.test(cardNumber)) {
+          showToast("❌ Wpisz 16-cyfrowy numer karty");
+          return;
+        }
+
+        const foundName = await findPlayerByCardNumber(cardNumber);
+        if (foundName) {
+          openChat(foundName);
+          input.value = "";
+          closeModal("onlineAccount");
+        } else {
+          showToast(
+            t.playerNotFound || "❌ Nie znaleziono gracza z tym numerem karty"
+          );
+        }
       }
 
       // Aktualizacja statusu online co 5 sekund
@@ -9303,15 +9542,44 @@
                   t.rejectedYourVoucher || "odrzucił Twój bon"
                 }: ${n.amount.toLocaleString()} ${getCurrency()}`;
                 break;
+              case "friendRequest":
+                icon = "👋";
+                text = `${n.from} ${
+                  t.wantsToBeYourFriend || "chce dodać Cię do znajomych!"
+                }`;
+                actions = `
+                            <button onclick="acceptFriendRequest('${n.id}', '${
+                  n.from
+                }')" style="padding:8px 15px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;margin-right:5px;">✅ ${
+                  t.accept || "Akceptuj"
+                }</button>
+                            <button onclick="rejectFriendRequest('${n.id}', '${
+                  n.from
+                }')" style="padding:8px 15px;background:#ef4444;color:white;border:none;border-radius:6px;cursor:pointer;">❌ ${
+                  t.reject || "Odrzuć"
+                }</button>
+                        `;
+                break;
+              case "friendAccepted":
+                icon = "🎉";
+                text = `${n.from} ${
+                  t.acceptedYourFriendRequest ||
+                  "zaakceptował zaproszenie! Jesteście znajomymi."
+                }`;
+                break;
+              case "friendRejected":
+                icon = "😢";
+                text = `${n.from} ${
+                  t.rejectedYourFriendRequest ||
+                  "odrzucił zaproszenie do znajomych"
+                }`;
+                break;
               default:
                 text = n.message || "Powiadomienie";
             }
 
-            // Dodaj przycisk czatu dla wszystkich powiadomień z nadawcą
-            const chatButton =
-              n.from && n.from !== playerName
-                ? `<button onclick="openChat('${n.from}')" style="padding:4px 8px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.8em;margin-left:5px;">💬</button>`
-                : "";
+            // Dodaj przycisk czatu dla znajomych
+            const chatButton = "";
 
             return `
                     <div style="background:${
@@ -9425,10 +9693,20 @@
       let currentChatUser = null;
       let chatInterval = null;
 
-      function openChat(username) {
+      async function openChat(username) {
+        // Sprawdź czy to znajomy
+        const friends = await getFriends();
+        const isFriend = friends.some((f) => f.name === username);
+
+        if (!isFriend) {
+          showToast("❌ Możesz pisać tylko ze znajomymi!");
+          return;
+        }
+
         currentChatUser = username;
         document.getElementById("chatWithName").textContent = username;
         closeModal("notifications");
+        closeModal("onlineAccount");
         openModal("chat");
         loadChatMessages();
 
@@ -9490,6 +9768,25 @@
         const input = document.getElementById("chatInput");
         const text = input.value.trim();
         if (!text || !currentChatUser || !playerName) return;
+
+        const save = getCurrentSave();
+        const messageCost = 5.5;
+        const t = translations[currentLang] || translations.en;
+
+        // Sprawdź czy stać na wiadomość
+        if (save.data.money < messageCost) {
+          showToast(
+            `❌ ${t.notEnoughMoney || "Brak środków"} (${messageCost.toFixed(
+              2
+            )} ${getCurrency()})`
+          );
+          return;
+        }
+
+        // Pobierz opłatę
+        save.data.money -= messageCost;
+        saveSaveData();
+        updateAllDisplays();
 
         const data = await getOnlineData();
         if (!data.chats) data.chats = {};
@@ -10556,7 +10853,33 @@
         localStorage.setItem("beamng_lang", currentLang);
       }
 
-      function generateCardCode() {
+      async function generateCardCode() {
+        const data = await getOnlineData();
+        const existingCards = new Set();
+
+        // Zbierz wszystkie istniejące numery kart
+        if (data.players) {
+          for (const player of Object.values(data.players)) {
+            if (player.cardNumber) {
+              existingCards.add(player.cardNumber);
+            }
+          }
+        }
+
+        // Generuj unikalny kod 6 cyfr
+        let code;
+        let attempts = 0;
+        do {
+          code = "";
+          for (let i = 0; i < 6; i++) code += Math.floor(Math.random() * 10);
+          attempts++;
+        } while (existingCards.has(code) && attempts < 100);
+
+        return code;
+      }
+
+      function generateCardCodeSync() {
+        // Wersja synchroniczna dla kompatybilności - 6 cyfr
         let code = "";
         for (let i = 0; i < 6; i++) code += Math.floor(Math.random() * 10);
         return code;
