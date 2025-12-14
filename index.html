@@ -3032,6 +3032,13 @@
           perWeek: "/tydzień",
           perMonth: "/miesiąc",
           activated: "Aktywowane",
+          perHourShort: "/h",
+          perDayShort: "/d",
+          perWeekShort: "/tyg",
+          every: "co",
+          hour: "Godzina",
+          day: "Dzień",
+          week: "Tydzień",
           remaining: "Pozostało",
           expired: "Wygasło",
           autoPayments: "Automatyczne płatności",
@@ -3161,6 +3168,12 @@
           pendingVoucher: "Wysłano - oczekuje",
           cancelVoucherConfirm: "Anulować bon?",
           voucherAlreadyUsed: "Ten bon został już wykorzystany!",
+          cantReceiveOwnVoucher: "Nie możesz odebrać własnego bonu!",
+          sent: "wysłany",
+          total: "łącznie",
+          shippingFee: "opłata za przesyłkę",
+          shippingInfo: "Wysyłka online: +100 zł opłaty",
+          noShippingFee: "Bez opłaty za przesyłkę",
           shareTo: "Udostępnij do:",
           sendToOtherSave: "Lub wyślij na inny zapis:",
           voucherSentToSave: "Bon wysłany do",
@@ -3388,6 +3401,13 @@
           perWeek: "/week",
           perMonth: "/month",
           activated: "Activated",
+          perHourShort: "/h",
+          perDayShort: "/d",
+          perWeekShort: "/wk",
+          every: "every",
+          hour: "Hour",
+          day: "Day",
+          week: "Week",
           remaining: "Remaining",
           expired: "Expired",
           autoPayments: "Auto payments",
@@ -3517,6 +3537,12 @@
           pendingVoucher: "Sent - waiting",
           cancelVoucherConfirm: "Cancel voucher?",
           voucherAlreadyUsed: "This voucher has already been used!",
+          cantReceiveOwnVoucher: "You cannot receive your own voucher!",
+          sent: "sent",
+          total: "total",
+          shippingFee: "shipping fee",
+          shippingInfo: "Online shipping: +100 fee",
+          noShippingFee: "No shipping fee",
           shareTo: "Share to:",
           sendToOtherSave: "Or send to another save:",
           voucherSentToSave: "Voucher sent to",
@@ -6015,8 +6041,11 @@
         const otherSaves = saves.filter((s) => s.id !== currentSaveId);
 
         buttonsDiv.innerHTML = `
-                <p style="margin-bottom:10px;font-weight:bold;">${
+                <p style="margin-bottom:5px;font-weight:bold;">${
                   t.shareTo || "Udostępnij do:"
+                }</p>
+                <p style="margin-bottom:10px;font-size:0.85em;color:#f59e0b;">⚠️ ${
+                  t.shippingInfo || "Wysyłka online: +100 zł opłaty"
                 }</p>
                 <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:15px;">
                     <button onclick="shareVoucherVia('messenger')" style="flex:1;min-width:120px;padding:12px;background:#0084ff;color:white;border:none;border-radius:10px;cursor:pointer;font-size:1em;">
@@ -6035,8 +6064,11 @@
                 ${
                   otherSaves.length > 0
                     ? `
-                    <p style="margin-bottom:10px;font-weight:bold;border-top:1px solid #333;padding-top:15px;">${
+                    <p style="margin-bottom:5px;font-weight:bold;border-top:1px solid #333;padding-top:15px;">${
                       t.sendToOtherSave || "Lub wyślij na inny zapis:"
+                    }</p>
+                    <p style="margin-bottom:10px;font-size:0.85em;color:#4ade80;">✅ ${
+                      t.noShippingFee || "Bez opłaty za przesyłkę"
                     }</p>
                     <div style="display:flex;flex-direction:column;gap:8px;">
                         ${otherSaves
@@ -6080,6 +6112,38 @@
         if (!currentVoucherToShare) return;
 
         const v = currentVoucherToShare.voucher;
+        const idx = currentVoucherToShare.index;
+        const save = getCurrentSave();
+        const t = translations[currentLang] || translations.en;
+        const voucherMode = v.gameMode || gameMode;
+
+        const SHIPPING_FEE = 100; // Opłata za przesyłkę bonu
+        const totalCost = v.amount + SHIPPING_FEE;
+
+        // ONLINE - od razu odejmij pieniądze (wartość bonu + opłata za przesyłkę)
+        const modeKey =
+          voucherMode === "reallife" ? "realLifeData" : "beamngData";
+
+        // Odejmij pieniądze z odpowiedniego trybu (bon + przesyłka)
+        if (save[modeKey]) {
+          save[modeKey].money = (save[modeKey].money || 0) - totalCost;
+        }
+        // Jeśli jesteśmy w tym trybie, aktualizuj też lokalną zmienną
+        if (voucherMode === gameMode) {
+          money -= totalCost;
+        }
+
+        // Usuń bon z listy (już wysłany online)
+        if (save.data.vouchersToSend && save.data.vouchersToSend[idx]) {
+          save.data.vouchersToSend.splice(idx, 1);
+        }
+
+        // Oznacz bon jako wysłany online (nie można go odebrać samemu)
+        markVoucherAsUsed(v.id + "_sender_" + save.id);
+
+        localStorage.setItem("beamng_saves", JSON.stringify(saves));
+        updateAllDisplays();
+
         const link = getVoucherLink(v);
         const message = getShareMessage(v);
         const fullText = message + link;
@@ -6102,7 +6166,11 @@
             break;
           case "email":
             const subject =
-              currentLang === "pl"
+              voucherMode === "reallife"
+                ? currentLang === "pl"
+                  ? "Kupon podarunkowy Real Life"
+                  : "Real Life Gift Coupon"
+                : currentLang === "pl"
                 ? "Bon podarunkowy BeamNG"
                 : "BeamNG Gift Voucher";
             window.open(
@@ -6119,6 +6187,26 @@
         }
 
         closeModal("shareVoucher");
+        renderVouchersList();
+
+        // Pokaż potwierdzenie z opłatą za przesyłkę
+        const voucherName =
+          voucherMode === "reallife"
+            ? currentLang === "pl"
+              ? "Kupon"
+              : "Coupon"
+            : currentLang === "pl"
+            ? "Bon"
+            : "Voucher";
+        const shippingText =
+          currentLang === "pl" ? "opłata za przesyłkę" : "shipping fee";
+        alert(
+          `📤 ${voucherName} ${
+            t.sent || "wysłany"
+          }!\n-${v.amount.toLocaleString()} ${getCurrency()} (${voucherName.toLowerCase()})\n-${SHIPPING_FEE} ${getCurrency()} (${shippingText})\n━━━━━━━━━━━━\n-${totalCost.toLocaleString()} ${getCurrency()} ${
+            t.total || "łącznie"
+          }`
+        );
       }
 
       function sendVoucherToSave(targetSaveId) {
@@ -6274,6 +6362,23 @@
             return;
           }
 
+          // Sprawdź czy nadawca nie próbuje odebrać swojego bonu
+          const save = getCurrentSave();
+          if (save && save.id === fromId) {
+            alert(
+              t.cantReceiveOwnVoucher || "Nie możesz odebrać własnego bonu!"
+            );
+            return;
+          }
+
+          // Sprawdź też czy ten save nie był nadawcą tego bonu (przez markVoucherAsUsed)
+          if (isVoucherUsed(vid + "_sender_" + (save ? save.id : ""))) {
+            alert(
+              t.cantReceiveOwnVoucher || "Nie możesz odebrać własnego bonu!"
+            );
+            return;
+          }
+
           const voucher = {
             id: vid,
             amount: parseInt(amount),
@@ -6352,28 +6457,28 @@
         // Oznacz bon jako wykorzystany (jeśli z linku)
         if (voucher.isFromLink) {
           markVoucherAsUsed(voucher.id);
-        }
-
-        // Znajdź save nadawcy (jeśli na tym samym urządzeniu)
-        const senderSave = saves.find((s) => s.id === voucher.fromSaveId);
-        if (senderSave) {
-          // Usuń bon z listy oczekujących nadawcy
-          if (senderSave.data.vouchersToSend) {
-            const vIdx = senderSave.data.vouchersToSend.findIndex(
-              (v) => v.id === voucher.id
-            );
-            if (vIdx !== -1) {
-              senderSave.data.vouchersToSend.splice(vIdx, 1);
+          // Pieniądze już zostały odjęte nadawcy przy wysyłce online
+        } else {
+          // Bon lokalny - teraz odejmij pieniądze nadawcy
+          const senderSave = saves.find((s) => s.id === voucher.fromSaveId);
+          if (senderSave) {
+            // Usuń bon z listy oczekujących nadawcy
+            if (senderSave.data.vouchersToSend) {
+              const vIdx = senderSave.data.vouchersToSend.findIndex(
+                (v) => v.id === voucher.id
+              );
+              if (vIdx !== -1) {
+                senderSave.data.vouchersToSend.splice(vIdx, 1);
+              }
+            }
+            // Odejmij pieniądze nadawcy z odpowiedniego trybu
+            const senderModeKey =
+              voucherMode === "reallife" ? "realLifeData" : "beamngData";
+            if (senderSave[senderModeKey]) {
+              senderSave[senderModeKey].money =
+                (senderSave[senderModeKey].money || 0) - voucher.amount;
             }
           }
-          // Odejmij pieniądze nadawcy z odpowiedniego trybu
-          const senderModeKey =
-            voucherMode === "reallife" ? "realLifeData" : "beamngData";
-          if (senderSave[senderModeKey]) {
-            senderSave[senderModeKey].money =
-              (senderSave[senderModeKey].money || 0) - voucher.amount;
-          }
-          localStorage.setItem("beamng_saves", JSON.stringify(saves));
         }
 
         // Dodaj pieniądze odbiorcy do odpowiedniego trybu
@@ -8366,18 +8471,24 @@
             )}</div>
                         <div style="font-size:0.75em;color:#aaa;">${getInsuranceDesc(
                           pkg
-                        )} co ${pkg.interval} min</div>
+                        )} ${t.every || "co"} ${pkg.interval} min</div>
                     </div>
                     <div style="text-align:right;font-size:0.75em;">
                         <div style="color:#ff6b35;">${
                           pkg.prices.hour
-                        } zł<span style="color:#666;">/h</span></div>
+                        } ${getCurrency()}<span style="color:#666;">${
+              t.perHourShort || "/h"
+            }</span></div>
                         <div style="color:#ff6b35;">${
                           pkg.prices.day
-                        } zł<span style="color:#666;">/d</span></div>
+                        } ${getCurrency()}<span style="color:#666;">${
+              t.perDayShort || "/d"
+            }</span></div>
                         <div style="color:#ff6b35;">${
                           pkg.prices.week
-                        } zł<span style="color:#666;">/tyg</span></div>
+                        } ${getCurrency()}<span style="color:#666;">${
+              t.perWeekShort || "/tyg"
+            }</span></div>
                         ${
                           isOwned
                             ? '<div style="color:#4ade80;margin-top:2px;">✅</div>'
@@ -8406,7 +8517,7 @@
                 )}</div>
                 <div style="color:#aaa;font-size:0.9em;">${getInsuranceDesc(
                   pkg
-                )} co ${pkg.interval} min</div>
+                )} ${t.every || "co"} ${pkg.interval} min</div>
             `;
 
         document.getElementById("periodOptions").innerHTML = `
@@ -8518,9 +8629,9 @@
                     <div style="font-weight:bold;font-size:1.3em;">${getInsuranceName(
                       pkg
                     )}</div>
-                    <div style="color:#aaa;">${getInsuranceDesc(pkg)} co ${
-          pkg.interval
-        } min</div>
+                    <div style="color:#aaa;">${getInsuranceDesc(pkg)} ${
+          t.every || "co"
+        } ${pkg.interval} min</div>
                 </div>
                 
                 <div style="background:rgba(0,0,0,0.2);border-radius:10px;padding:15px;margin-bottom:15px;">
@@ -9028,7 +9139,8 @@
           document.getElementById("payDebtBtn").style.display = "block";
         } else {
           debtDisplay.classList.remove("active");
-          document.getElementById("currentDebt").textContent = "0 zł";
+          document.getElementById("currentDebt").textContent =
+            "0 " + getCurrency();
           document.getElementById("payDebtBtn").style.display = "none";
         }
       }
