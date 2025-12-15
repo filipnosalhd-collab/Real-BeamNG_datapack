@@ -2949,8 +2949,24 @@
         <input
           type="text"
           id="loginName"
-          placeholder="Wpisz swoją nazwę..."
+          placeholder="Twoja nazwa..."
           maxlength="20"
+          style="
+            width: 100%;
+            padding: 15px;
+            background: #222;
+            border: 2px solid #333;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            text-align: center;
+          "
+        />
+        <input
+          type="email"
+          id="loginEmail"
+          placeholder="Twój email..."
           style="
             width: 100%;
             padding: 15px;
@@ -2974,7 +2990,7 @@
         ></p>
 
         <button
-          onclick="setPlayerName()"
+          onclick="setPlayerData()"
           style="
             width: 100%;
             padding: 15px;
@@ -2990,7 +3006,7 @@
         </button>
 
         <p style="color: #666; font-size: 0.8em; margin-top: 15px">
-          Nazwa musi mieć 2-20 znaków
+          Email jest prywatny i służy do odbierania bonów
         </p>
       </div>
     </div>
@@ -2998,7 +3014,7 @@
     <div class="modal" id="modalOnlineAccount">
       <div class="modal-content" style="max-width: 400px">
         <span class="close" onclick="closeModal('onlineAccount')">&times;</span>
-        <h2>👤 <span data-translate="onlineAccount">Konto Online</span></h2>
+        <h2>👤 <span data-translate="onlineAccount">Konto</span></h2>
         <div id="onlineAccountContent"></div>
       </div>
     </div>
