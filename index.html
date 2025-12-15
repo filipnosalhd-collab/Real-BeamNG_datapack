@@ -1115,13 +1115,6 @@
           </button>
           <button
             class="lang-btn"
-            onclick="openModal('auction')"
-            title="Aukcje"
-          >
-            🏪
-          </button>
-          <button
-            class="lang-btn"
             onclick="openModal('onlineAccount')"
             title="Konto online"
             id="onlineAccountBtn"
@@ -2061,9 +2054,25 @@
             id="workJobName"
             style="font-size: 1.2em; font-weight: bold"
           ></span>
-          <span id="workTimer" style="font-size: 1.5em; color: #f59e0b"
-            >2:00</span
-          >
+          <div style="display: flex; align-items: center; gap: 15px">
+            <span id="workTimer" style="font-size: 1.5em; color: #f59e0b"
+              >2:00</span
+            >
+            <button
+              onclick="quitWorkEarly()"
+              style="
+                padding: 8px 15px;
+                background: #ef4444;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 0.9em;
+              "
+            >
+              ⏹️ Przerwij (-3%)
+            </button>
+          </div>
         </div>
 
         <div
@@ -2935,90 +2944,54 @@
       <div class="modal-content" style="max-width: 400px; text-align: center">
         <h2>🎮 BeamNG Datapack</h2>
 
-        <div id="loginFormContainer">
-          <div style="font-size: 4em; margin-bottom: 15px">👤</div>
+        <div style="font-size: 4em; margin-bottom: 15px">👤</div>
 
-          <input
-            type="text"
-            id="loginName"
-            placeholder="Nazwa gracza..."
-            maxlength="20"
-            style="
-              width: 100%;
-              padding: 15px;
-              background: #222;
-              border: 2px solid #333;
-              border-radius: 10px;
-              color: white;
-              font-size: 1.1em;
-              margin-bottom: 10px;
-              text-align: center;
-            "
-          />
-          <input
-            type="password"
-            id="loginPassword"
-            placeholder="Hasło..."
-            maxlength="30"
-            style="
-              width: 100%;
-              padding: 15px;
-              background: #222;
-              border: 2px solid #333;
-              border-radius: 10px;
-              color: white;
-              font-size: 1.1em;
-              margin-bottom: 10px;
-              text-align: center;
-            "
-          />
-          <p
-            id="loginError"
-            style="
-              color: #ef4444;
-              font-size: 0.85em;
-              display: none;
-              margin-bottom: 10px;
-            "
-          ></p>
+        <input
+          type="text"
+          id="loginName"
+          placeholder="Wpisz swoją nazwę..."
+          maxlength="20"
+          style="
+            width: 100%;
+            padding: 15px;
+            background: #222;
+            border: 2px solid #333;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            text-align: center;
+          "
+        />
+        <p
+          id="loginError"
+          style="
+            color: #ef4444;
+            font-size: 0.85em;
+            display: none;
+            margin-bottom: 10px;
+          "
+        ></p>
 
-          <button
-            onclick="loginPlayer()"
-            style="
-              width: 100%;
-              padding: 15px;
-              background: #3b82f6;
-              color: white;
-              border: none;
-              border-radius: 10px;
-              cursor: pointer;
-              font-size: 1.1em;
-              margin-bottom: 10px;
-            "
-          >
-            🔑 Zaloguj się
-          </button>
+        <button
+          onclick="setPlayerName()"
+          style="
+            width: 100%;
+            padding: 15px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+          "
+        >
+          ✅ Rozpocznij grę
+        </button>
 
-          <button
-            onclick="registerPlayer()"
-            style="
-              width: 100%;
-              padding: 15px;
-              background: #10b981;
-              color: white;
-              border: none;
-              border-radius: 10px;
-              cursor: pointer;
-              font-size: 1.1em;
-            "
-          >
-            ✨ Zarejestruj się
-          </button>
-
-          <p style="color: #666; font-size: 0.8em; margin-top: 15px">
-            Nazwa: 2-20 znaków, Hasło: min. 4 znaki
-          </p>
-        </div>
+        <p style="color: #666; font-size: 0.8em; margin-top: 15px">
+          Nazwa musi mieć 2-20 znaków
+        </p>
       </div>
     </div>
 
@@ -4269,7 +4242,6 @@
           createdAt: Date.now(),
           data: {
             money: 1500,
-            cardCode: generateCardCodeSync(),
             limit: 10000,
             spent: 0,
             debt: 0,
@@ -6634,7 +6606,7 @@
         openShareModal();
       }
 
-      async function openShareModal() {
+      function openShareModal() {
         if (!currentVoucherToShare) return;
 
         const v = currentVoucherToShare.voucher;
@@ -6649,63 +6621,57 @@
         // Lista innych save'ów (nie aktualny)
         const otherSaves = saves.filter((s) => s.id !== currentSaveId);
 
-        // Pobierz TYLKO znajomych
-        const friends = playerName ? await getFriends() : [];
+        // Pobierz znajomych (lokalnie)
+        const friends = getFriendsList();
 
         buttonsDiv.innerHTML = `
+                <!-- Wyślij do znajomego -->
                 ${
-                  playerName
+                  friends.length > 0
                     ? `
                     <p style="margin-bottom:5px;font-weight:bold;">⭐ ${
                       t.sendToFriend || "Wyślij do znajomego:"
                     }</p>
-                    <p style="color:#f59e0b;font-size:0.8em;margin-bottom:10px;">💰 Opłata: 5% wartości bonu</p>
-                    
-                    <div id="voucherPlayersList" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;margin-bottom:15px;">
-                        ${
-                          friends.length > 0
-                            ? friends
-                                .map(
-                                  (f) => `
-                            <button onclick="sendVoucherToPlayer('${
-                              f.name
-                            }')" style="padding:12px;background:${
-                                    f.online ? "#2a4a2a" : "#222"
-                                  };color:white;border:1px solid ${
-                                    f.online ? "#10b981" : "#333"
-                                  };border-radius:8px;cursor:pointer;font-size:0.95em;text-align:left;display:flex;justify-content:space-between;align-items:center;">
-                                <span>${f.online ? "🟢" : "⚫"} ${f.name}</span>
-                                <span style="color:#888;font-size:0.8em;">${
-                                  f.online ? "🟢 Online" : ""
-                                }</span>
+                    <p style="color:#f59e0b;font-size:0.8em;margin-bottom:10px;">💰 Opłata: ${VOUCHER_SEND_FEE} ${getCurrency()}</p>
+                    <div style="display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto;margin-bottom:15px;">
+                        ${friends
+                          .map(
+                            (name) => `
+                            <button onclick="sendVoucherToFriend('${name}')" style="padding:12px;background:#222;color:white;border:1px solid #333;border-radius:8px;cursor:pointer;text-align:left;">
+                                👤 ${name}
                             </button>
                         `
-                                )
-                                .join("")
-                            : `<p style="color:#666;text-align:center;padding:15px;">${
-                                t.noFriendsToSend ||
-                                "Brak znajomych. Dodaj znajomych w Konto Online żeby wysyłać bony!"
-                              }</p>`
-                        }
+                          )
+                          .join("")}
                     </div>
                 `
                     : `
-                    <p style="color:#888;text-align:center;padding:20px;">${
-                      t.loginFirst || "Zaloguj się żeby wysłać do graczy"
-                    }</p>
+                    <p style="color:#666;text-align:center;padding:15px;margin-bottom:15px;">${
+                      t.noFriends || "Brak znajomych"
+                    }<br><small>Dodaj znajomych w Konto Online!</small></p>
                 `
                 }
+                
+                <!-- Wyślij przez link -->
+                <p style="margin-bottom:10px;font-weight:bold;border-top:1px solid #333;padding-top:15px;">🔗 ${
+                  t.shareViaLink || "Lub wyślij przez link:"
+                }</p>
+                <div style="display:flex;gap:8px;margin-bottom:15px;">
+                    <button onclick="shareVoucherVia('copy')" style="flex:1;padding:12px;background:#3b82f6;color:white;border:none;border-radius:8px;cursor:pointer;">📋</button>
+                    <button onclick="shareVoucherVia('whatsapp')" style="flex:1;padding:12px;background:#25D366;color:white;border:none;border-radius:8px;cursor:pointer;">💬</button>
+                </div>
+                
                 ${
                   otherSaves.length > 0
                     ? `
                     <p style="margin-bottom:5px;font-weight:bold;border-top:1px solid #333;padding-top:15px;">💾 ${
-                      t.sendToOtherSave || "Lub wyślij na inny zapis:"
+                      t.sendToOtherSave || "Lub na inny zapis:"
                     }</p>
                     <div style="display:flex;flex-direction:column;gap:8px;">
                         ${otherSaves
                           .map(
                             (s) => `
-                            <button onclick="sendVoucherToSave('${s.id}')" style="padding:12px;background:rgba(0,0,0,0.3);color:white;border:2px solid #333;border-radius:10px;cursor:pointer;font-size:1em;text-align:left;">
+                            <button onclick="sendVoucherToSave('${s.id}')" style="padding:12px;background:rgba(0,0,0,0.3);color:white;border:2px solid #333;border-radius:10px;cursor:pointer;text-align:left;">
                                 💾 ${s.name}
                             </button>
                         `
@@ -6720,97 +6686,55 @@
         openModal("shareVoucher");
       }
 
-      function filterVoucherPlayers() {
-        const input = document.getElementById("voucherRecipientInput");
-        const filter = input.value.toLowerCase();
-        const buttons = document.querySelectorAll(".voucher-player-btn");
-
-        buttons.forEach((btn) => {
-          const name = btn.getAttribute("data-name");
-          if (name.includes(filter)) {
-            btn.style.display = "flex";
-          } else {
-            btn.style.display = "none";
-          }
-        });
-      }
-
-      async function getAllPlayers() {
-        const data = await getOnlineData();
-        if (!data.players) return [];
-        const now = Date.now();
-        const ONLINE_TIMEOUT = 2 * 60 * 1000;
-
-        return Object.entries(data.players)
-          .filter(([name, p]) => name !== playerName)
-          .map(([name, p]) => ({
-            name,
-            online: p.online && now - p.lastSeen < ONLINE_TIMEOUT,
-            gameMode: p.gameMode,
-            photoURL: p.photoURL || null,
-          }))
-          .sort((a, b) => {
-            // Online gracze na górze
-            if (a.online && !b.online) return -1;
-            if (!a.online && b.online) return 1;
-            return a.name.localeCompare(b.name);
-          });
-      }
-
-      async function sendVoucherToPlayerByName() {
-        const input = document.getElementById("voucherRecipientInput");
-        const toPlayerName = input.value.trim();
-        if (!toPlayerName) return;
-
-        await sendVoucherToPlayer(toPlayerName);
-      }
-
-      async function sendVoucherToPlayer(toPlayerName) {
-        if (!currentVoucherToShare || !playerName) return;
+      // Wyślij bon do znajomego (lokalnie - bez serwera)
+      function sendVoucherToFriend(friendName) {
+        if (!currentVoucherToShare) return;
 
         const v = currentVoucherToShare.voucher;
+        const idx = currentVoucherToShare.index;
         const save = getCurrentSave();
         const t = translations[currentLang] || translations.en;
 
-        // Opłata 5% wartości bonu
-        const fee = Math.ceil(v.amount * 0.05);
-
         // Sprawdź czy stać na opłatę
-        if (save.data.money < fee) {
+        if (save.data.money < VOUCHER_SEND_FEE) {
           showToast(
             `❌ ${
-              t.notEnoughForFee || "Brak środków na opłatę"
-            } (${fee.toLocaleString()} ${getCurrency()})`
+              t.notEnoughMoney || "Brak środków"
+            } (${VOUCHER_SEND_FEE} ${getCurrency()})`
           );
           return;
         }
 
         // Pobierz opłatę
-        save.data.money -= fee;
+        save.data.money -= VOUCHER_SEND_FEE;
+
+        // Zapisz bon jako wysłany do znajomego
+        v.sentToFriend = friendName;
+        v.sentAt = Date.now();
+
+        // Zapisz info o bonie w localStorage dla znajomego
+        let pendingVouchers = JSON.parse(
+          localStorage.getItem("beamng_pending_vouchers") || "[]"
+        );
+        pendingVouchers.push({
+          id: v.id,
+          amount: v.amount,
+          message: v.message,
+          from: playerName,
+          to: friendName,
+          gameMode: v.gameMode || gameMode,
+          sentAt: Date.now(),
+        });
+        localStorage.setItem(
+          "beamng_pending_vouchers",
+          JSON.stringify(pendingVouchers)
+        );
+
         saveSaveData();
         updateAllDisplays();
 
-        // Wyślij powiadomienie do gracza
-        await sendNotification(toPlayerName, {
-          type: "voucher",
-          from: playerName,
-          voucherId: v.id,
-          amount: v.amount,
-          message: v.message,
-          gameMode: v.gameMode || gameMode,
-          fromSaveId: v.fromSaveId,
-        });
-
-        // Oznacz bon jako wysłany do konkretnego gracza
-        v.sentToPlayer = toPlayerName;
-        v.sentAt = Date.now();
-
-        saveSaveData();
-
         showToast(
-          `✅ ${
-            t.voucherSentTo || "Bon wysłany do"
-          } ${toPlayerName}! (opłata: ${fee.toLocaleString()} ${getCurrency()})`
+          `✅ Bon wysłany do ${friendName}! (opłata: ${VOUCHER_SEND_FEE} ${getCurrency()})`
         );
         closeModal("shareVoucher");
         renderVouchersList();
@@ -6852,7 +6776,7 @@
         const loadingMsg = currentLang === "pl" ? "Wysyłanie..." : "Sending...";
 
         // Zapisz bon online do JSONBin
-        await saveVoucherOnline({
+        saveVoucherOnline({
           id: v.id,
           amount: v.amount,
           message: v.message,
@@ -7054,61 +6978,17 @@
       }
 
       // Sprawdź czy w URL jest bon do odebrania
-      // ==================== SYSTEM ONLINE (JSONBin) ====================
-      const JSONBIN_BIN_ID = "693ea98843b1c97be9ed8459";
-      const JSONBIN_API_KEY =
-        "$2a$10$fXr.ZSgHBnYW.kI0UpbwY.7yZXQwBib7fJLjT4oqgPKG/gZO2aKXy";
+      // ==================== SYSTEM LOKALNY ====================
       const VOUCHER_EXPIRY_SECONDS = 30;
-      const ONLINE_SEND_FEE = 250; // Opłata za wysłanie do gracza online
       const LINK_SEND_FEE = 100; // Opłata za wysłanie linkiem
 
       let playerName = localStorage.getItem("beamng_player_name") || null;
-      let playerPin = localStorage.getItem("beamng_player_pin") || null;
-      let playerGoogleData = JSON.parse(
-        localStorage.getItem("beamng_google_data") || "null"
-      );
-      let lastNotificationCheck = 0;
-      let unreadNotifications = 0;
 
-      // ========== SYSTEM LOGOWANIA ==========
-      // Wyczyść stare konta bez hasła (jednorazowo)
-      async function cleanOldAccounts() {
-        if (localStorage.getItem("beamng_cleaned_old_accounts")) return;
+      // Opłaty
+      const CHAT_MESSAGE_FEE = 5.5; // Opłata za wiadomość
+      const VOUCHER_SEND_FEE = 250; // Opłata za wysłanie bonu
 
-        try {
-          const data = await getOnlineData();
-          if (!data.players) return;
-
-          let cleaned = false;
-          const toDelete = [];
-
-          for (const [name, player] of Object.entries(data.players)) {
-            // Usuń konta bez passwordHash (stare)
-            if (!player.passwordHash) {
-              toDelete.push(name);
-            }
-          }
-
-          for (const name of toDelete) {
-            delete data.players[name];
-            // Usuń też powiadomienia i czaty
-            if (data.notifications && data.notifications[name]) {
-              delete data.notifications[name];
-            }
-            cleaned = true;
-          }
-
-          if (cleaned) {
-            await saveOnlineData(data);
-            console.log("Wyczyszczono stare konta:", toDelete);
-          }
-
-          localStorage.setItem("beamng_cleaned_old_accounts", "true");
-        } catch (e) {
-          console.log("Błąd czyszczenia:", e);
-        }
-      }
-
+      // ========== SYSTEM NAZWY GRACZA ==========
       function checkRequireLogin() {
         if (!playerName) {
           document.getElementById("modalRequireLogin").classList.add("active");
@@ -7127,23 +7007,9 @@
         document.getElementById("loginError").style.display = "none";
       }
 
-      // Prosta funkcja hashowania hasła
-      function hashPassword(password) {
-        let hash = 0;
-        for (let i = 0; i < password.length; i++) {
-          const char = password.charCodeAt(i);
-          hash = (hash << 5) - hash + char;
-          hash = hash & hash;
-        }
-        return "h" + Math.abs(hash).toString(36);
-      }
-
-      async function registerPlayer() {
+      function setPlayerName() {
         const name = document.getElementById("loginName").value.trim();
-        const password = document.getElementById("loginPassword").value;
         hideLoginError();
-
-        console.log("Rejestracja:", name);
 
         if (name.length < 2) {
           showLoginError("Nazwa musi mieć min. 2 znaki");
@@ -7153,126 +7019,34 @@
           showLoginError("Nazwa może mieć max. 20 znaków");
           return;
         }
-        if (password.length < 4) {
-          showLoginError("Hasło musi mieć min. 4 znaki");
-          return;
-        }
 
-        try {
-          const data = await getOnlineData();
-          console.log("Dane z serwera:", data);
-          if (!data.players) data.players = {};
+        playerName = name;
+        localStorage.setItem("beamng_player_name", playerName);
 
-          // Sprawdź czy nazwa jest zajęta
-          if (data.players[name]) {
-            showLoginError("Ta nazwa jest już zajęta!");
-            return;
-          }
-
-          // Pobierz globalny numer karty (ten sam dla całego urządzenia)
-          let cardNum = cardCode;
-
-          // Sprawdź czy numer karty jest unikalny na serwerze
-          let needNewCard = false;
-          for (const [pName, player] of Object.entries(data.players)) {
-            if (player.cardNumber === cardNum) {
-              needNewCard = true;
-              break;
-            }
-          }
-
-          // Jeśli zajęty - wygeneruj nowy i zapisz globalnie
-          if (needNewCard) {
-            cardNum = generateCardCodeSync();
-            cardCode = cardNum;
-            localStorage.setItem("beamng_device_card_code", cardCode);
-          }
-
-          // Zarejestruj gracza
-          playerName = name;
-          localStorage.setItem("beamng_player_name", playerName);
-
-          data.players[playerName] = {
-            passwordHash: hashPassword(password),
-            displayName: name,
-            cardNumber: cardNum,
-            registeredAt: Date.now(),
-            online: true,
-            lastSeen: Date.now(),
-            gameMode: gameMode,
-          };
-
-          console.log("Zapisuję gracza:", data.players[playerName]);
-          await saveOnlineData(data);
-
-          finishLogin();
-        } catch (e) {
-          console.error("Błąd rejestracji:", e);
-          showLoginError("Błąd połączenia z serwerem");
-        }
-      }
-
-      async function loginPlayer() {
-        const name = document.getElementById("loginName").value.trim();
-        const password = document.getElementById("loginPassword").value;
-        hideLoginError();
-
-        console.log("Logowanie:", name);
-
-        if (!name || !password) {
-          showLoginError("Wpisz nazwę i hasło");
-          return;
-        }
-
-        try {
-          const data = await getOnlineData();
-          console.log("Dane z serwera:", data);
-
-          if (!data.players || !data.players[name]) {
-            showLoginError("Nie znaleziono gracza o tej nazwie");
-            return;
-          }
-
-          const player = data.players[name];
-
-          // Sprawdź hasło
-          if (player.passwordHash !== hashPassword(password)) {
-            showLoginError("Błędne hasło!");
-            return;
-          }
-
-          // Zaloguj
-          playerName = name;
-          localStorage.setItem("beamng_player_name", playerName);
-
-          // Aktualizuj status
-          data.players[playerName].online = true;
-          data.players[playerName].lastSeen = Date.now();
-          await saveOnlineData(data);
-
-          finishLogin();
-        } catch (e) {
-          console.error("Błąd logowania:", e);
-          showLoginError("Błąd połączenia z serwerem");
-        }
-      }
-
-      function finishLogin() {
         document.getElementById("modalRequireLogin").classList.remove("active");
-        document.getElementById("loginName").value = "";
-        document.getElementById("loginPassword").value = "";
-        hideLoginError();
-
-        // Pokaż powiadomienie bez blokowania
-        showToast(`🎮 Witaj ${playerName}!`);
-
-        startOnlineStatusUpdater();
-        checkNotifications();
         updateAllDisplays();
+
+        showToast(`🎮 Witaj ${playerName}!`);
+      }
+
+      function editPlayerName() {
+        const newName = prompt("Nowa nazwa:", playerName);
+        if (!newName || newName.trim().length < 2) {
+          showToast("❌ Nazwa musi mieć min. 2 znaki");
+          return;
+        }
+        if (newName.trim().length > 20) {
+          showToast("❌ Nazwa może mieć max. 20 znaków");
+          return;
+        }
+
+        playerName = newName.trim();
+        localStorage.setItem("beamng_player_name", playerName);
+        showToast(`✅ Nazwa zmieniona na ${playerName}`);
+        renderOnlineAccount();
       }
 
       function showToast(message) {
-        // Usuń stary toast jeśli jest
         const oldToast = document.getElementById("toast");
         if (oldToast) oldToast.remove();
 
@@ -7282,119 +7056,44 @@
         toast.style.cssText =
           "position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:15px 30px;border-radius:10px;font-size:1.1em;z-index:9999;animation:fadeInOut 2s forwards;";
         document.body.appendChild(toast);
-
         setTimeout(() => toast.remove(), 2000);
       }
 
-      async function logoutPlayer() {
-        if (!confirm("Wylogować się? Konto zostanie zachowane.")) return;
-
-        // Ustaw offline w bazie
-        const data = await getOnlineData();
-        if (data.players && data.players[playerName]) {
-          data.players[playerName].online = false;
-          await saveOnlineData(data);
+      // ========== DANE LOKALNE (bez serwera) ==========
+      function getOnlineData() {
+        const saved = localStorage.getItem("beamng_online_data");
+        if (saved) {
+          return JSON.parse(saved);
         }
-
-        playerName = null;
-        localStorage.removeItem("beamng_player_name");
-
-        // Pokaż ekran logowania
-        document.getElementById("modalRequireLogin").classList.add("active");
+        return {
+          vouchers: {},
+          players: {},
+          notifications: {},
+          chats: {},
+          shop: { lastReset: 0, items: {} },
+        };
       }
 
-      async function deleteAccount() {
-        if (
-          !confirm(
-            "⚠️ USUŃ KONTO?\n\nTwoje konto zostanie CAŁKOWICIE usunięte z serwera!\nNazwa i hasło będą znów dostępne.\n\nTej operacji nie można cofnąć!"
-          )
-        )
-          return;
-        if (!confirm("Na pewno usunąć konto " + playerName + "?")) return;
-
-        // Usuń z bazy
-        const data = await getOnlineData();
-        if (data.players && data.players[playerName]) {
-          delete data.players[playerName];
-          await saveOnlineData(data);
-        }
-
-        // Usuń powiadomienia gracza
-        if (data.notifications && data.notifications[playerName]) {
-          delete data.notifications[playerName];
-          await saveOnlineData(data);
-        }
-
-        playerName = null;
-        localStorage.removeItem("beamng_player_name");
-
-        alert("Konto zostało usunięte.");
-        document.getElementById("modalRequireLogin").classList.add("active");
-      }
-
-      // ========== PODSTAWOWE FUNKCJE API ==========
-      async function getOnlineData() {
-        try {
-          const response = await fetch(
-            `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,
-            {
-              headers: { "X-Master-Key": JSONBIN_API_KEY },
-            }
-          );
-          const data = await response.json();
-          return (
-            data.record || {
-              vouchers: {},
-              players: {},
-              auctions: {},
-              notifications: {},
-              chats: {},
-              shop: { lastReset: 0, items: {} },
-            }
-          );
-        } catch (e) {
-          return {
-            vouchers: {},
-            players: {},
-            auctions: {},
-            notifications: {},
-            chats: {},
-            shop: { lastReset: 0, items: {} },
-          };
-        }
-      }
-
-      async function saveOnlineData(data) {
-        try {
-          await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Master-Key": JSONBIN_API_KEY,
-            },
-            body: JSON.stringify(data),
-          });
-          return true;
-        } catch (e) {
-          return false;
-        }
+      function saveOnlineData(data) {
+        localStorage.setItem("beamng_online_data", JSON.stringify(data));
+        return true;
       }
 
       // ========== SYSTEM GRACZY ==========
       async function updatePlayerStatus() {
         if (!playerName) return;
-        const data = await getOnlineData();
+        const data = getOnlineData();
         if (data.players && data.players[playerName]) {
           data.players[playerName].online = true;
           data.players[playerName].lastSeen = Date.now();
           data.players[playerName].gameMode = gameMode;
           data.players[playerName].cardNumber = cardCode;
-          await saveOnlineData(data);
+          saveOnlineData(data);
         }
       }
 
       async function getOnlinePlayers() {
-        const data = await getOnlineData();
+        const data = getOnlineData();
         if (!data.players) return [];
         const now = Date.now();
         const ONLINE_TIMEOUT = 2 * 60 * 1000; // 2 minuty
@@ -7414,12 +7113,12 @@
 
       // ========== SYSTEM BONÓW ==========
       async function getOnlineVouchers() {
-        const data = await getOnlineData();
+        const data = getOnlineData();
         return data.vouchers || {};
       }
 
-      async function saveVoucherOnline(voucher) {
-        const data = await getOnlineData();
+      function saveVoucherOnline(voucher) {
+        const data = getOnlineData();
         if (!data.vouchers) data.vouchers = {};
         data.vouchers[voucher.id] = {
           amount: voucher.amount,
@@ -7432,16 +7131,16 @@
           firstOpenedAt: null,
           status: "pending",
         };
-        await saveOnlineData(data);
+        saveOnlineData(data);
       }
 
-      async function checkVoucherOnline(voucherId) {
-        const data = await getOnlineData();
+      function checkVoucherOnline(voucherId) {
+        const data = getOnlineData();
         return data.vouchers ? data.vouchers[voucherId] : null;
       }
 
-      async function markVoucherOpened(voucherId) {
-        const data = await getOnlineData();
+      function markVoucherOpened(voucherId) {
+        const data = getOnlineData();
         if (
           data.vouchers &&
           data.vouchers[voucherId] &&
@@ -7449,34 +7148,34 @@
         ) {
           data.vouchers[voucherId].firstOpenedAt = Date.now();
           data.vouchers[voucherId].status = "opened";
-          await saveOnlineData(data);
+          saveOnlineData(data);
         }
         return data.vouchers ? data.vouchers[voucherId] : null;
       }
 
-      async function markVoucherUsedOnline(voucherId) {
-        const data = await getOnlineData();
+      function markVoucherUsedOnline(voucherId) {
+        const data = getOnlineData();
         if (data.vouchers && data.vouchers[voucherId]) {
           data.vouchers[voucherId].status = "used";
           data.vouchers[voucherId].usedAt = Date.now();
-          await saveOnlineData(data);
+          saveOnlineData(data);
         }
       }
 
-      async function cancelVoucherOnline(voucherId) {
-        const data = await getOnlineData();
+      function cancelVoucherOnline(voucherId) {
+        const data = getOnlineData();
         if (data.vouchers && data.vouchers[voucherId]) {
           data.vouchers[voucherId].status = "cancelled";
           data.vouchers[voucherId].cancelledAt = Date.now();
-          await saveOnlineData(data);
+          saveOnlineData(data);
           return data.vouchers[voucherId];
         }
         return null;
       }
 
       // ========== SYSTEM POWIADOMIEŃ ==========
-      async function sendNotification(toPlayer, notification) {
-        const data = await getOnlineData();
+      function sendNotification(toPlayer, notification) {
+        const data = getOnlineData();
         if (!data.notifications) data.notifications = {};
         if (!data.notifications[toPlayer]) data.notifications[toPlayer] = [];
 
@@ -7486,41 +7185,41 @@
         notification.read = false;
 
         data.notifications[toPlayer].push(notification);
-        await saveOnlineData(data);
+        saveOnlineData(data);
       }
 
-      async function getMyNotifications() {
+      function getMyNotifications() {
         if (!playerName) return [];
-        const data = await getOnlineData();
+        const data = getOnlineData();
         return data.notifications && data.notifications[playerName]
           ? data.notifications[playerName]
           : [];
       }
 
-      async function markNotificationRead(notifId) {
-        const data = await getOnlineData();
+      function markNotificationRead(notifId) {
+        const data = getOnlineData();
         if (data.notifications && data.notifications[playerName]) {
           const notif = data.notifications[playerName].find(
             (n) => n.id === notifId
           );
           if (notif) notif.read = true;
-          await saveOnlineData(data);
+          saveOnlineData(data);
         }
       }
 
-      async function removeNotification(notifId) {
-        const data = await getOnlineData();
+      function removeNotification(notifId) {
+        const data = getOnlineData();
         if (data.notifications && data.notifications[playerName]) {
           data.notifications[playerName] = data.notifications[
             playerName
           ].filter((n) => n.id !== notifId);
-          await saveOnlineData(data);
+          saveOnlineData(data);
         }
       }
 
       async function checkNotifications() {
         if (!playerName) return;
-        const notifs = await getMyNotifications();
+        const notifs = getMyNotifications();
         unreadNotifications = notifs.filter((n) => !n.read).length;
         updateNotificationBadge();
       }
@@ -7535,7 +7234,7 @@
 
       // ========== SYSTEM AUKCJI ==========
       async function createAuction(item) {
-        const data = await getOnlineData();
+        const data = getOnlineData();
         if (!data.auctions) data.auctions = {};
 
         const auctionId =
@@ -7552,12 +7251,12 @@
           bids: [],
           negotiations: [],
         };
-        await saveOnlineData(data);
+        saveOnlineData(data);
         return auctionId;
       }
 
       async function getActiveAuctions() {
-        const data = await getOnlineData();
+        const data = getOnlineData();
         if (!data.auctions) return [];
         return Object.entries(data.auctions)
           .filter(([id, a]) => a.status === "active")
@@ -7565,7 +7264,7 @@
       }
 
       async function bidOnAuction(auctionId, amount, pin) {
-        const data = await getOnlineData();
+        const data = getOnlineData();
         if (!data.auctions || !data.auctions[auctionId])
           return { success: false, error: "notFound" };
 
@@ -7577,7 +7276,7 @@
         const save = getCurrentSave();
         if (amount > limit && pin !== playerPin) {
           // Wyślij powiadomienie do sprzedawcy o braku PIN
-          await sendNotification(auction.seller, {
+          sendNotification(auction.seller, {
             type: "pinRequired",
             from: playerName,
             auctionId: auctionId,
@@ -7597,19 +7296,19 @@
         });
 
         // Powiadom sprzedawcę
-        await sendNotification(auction.seller, {
+        sendNotification(auction.seller, {
           type: "newBid",
           from: playerName,
           auctionId: auctionId,
           amount: amount,
         });
 
-        await saveOnlineData(data);
+        saveOnlineData(data);
         return { success: true };
       }
 
       async function negotiateAuction(auctionId, offeredPrice) {
-        const data = await getOnlineData();
+        const data = getOnlineData();
         if (!data.auctions || !data.auctions[auctionId])
           return { success: false };
 
@@ -7623,14 +7322,14 @@
         });
 
         // Powiadom sprzedawcę
-        await sendNotification(auction.seller, {
+        sendNotification(auction.seller, {
           type: "negotiation",
           from: playerName,
           auctionId: auctionId,
           offeredPrice: offeredPrice,
         });
 
-        await saveOnlineData(data);
+        saveOnlineData(data);
         return { success: true };
       }
 
@@ -7640,7 +7339,7 @@
         response,
         counterOffer
       ) {
-        const data = await getOnlineData();
+        const data = getOnlineData();
         if (!data.auctions || !data.auctions[auctionId])
           return { success: false };
 
@@ -7653,7 +7352,7 @@
           auction.soldTo = negotiation.from;
           auction.soldPrice = negotiation.price;
 
-          await sendNotification(negotiation.from, {
+          sendNotification(negotiation.from, {
             type: "negotiationAccepted",
             auctionId: auctionId,
             price: negotiation.price,
@@ -7661,7 +7360,7 @@
         } else if (response === "reject") {
           negotiation.status = "rejected";
 
-          await sendNotification(negotiation.from, {
+          sendNotification(negotiation.from, {
             type: "negotiationRejected",
             auctionId: auctionId,
           });
@@ -7669,7 +7368,7 @@
           negotiation.status = "countered";
           negotiation.counterOffer = counterOffer;
 
-          await sendNotification(negotiation.from, {
+          sendNotification(negotiation.from, {
             type: "counterOffer",
             from: playerName,
             auctionId: auctionId,
@@ -7677,12 +7376,12 @@
           });
         }
 
-        await saveOnlineData(data);
+        saveOnlineData(data);
         return { success: true };
       }
 
       async function acceptAuction(auctionId, pinInput) {
-        const data = await getOnlineData();
+        const data = getOnlineData();
         if (!data.auctions || !data.auctions[auctionId])
           return { success: false };
 
@@ -7697,14 +7396,14 @@
         auction.soldTo = playerName;
         auction.soldPrice = auction.price;
 
-        await sendNotification(auction.seller, {
+        sendNotification(auction.seller, {
           type: "auctionSold",
           from: playerName,
           auctionId: auctionId,
           price: auction.price,
         });
 
-        await saveOnlineData(data);
+        saveOnlineData(data);
         return {
           success: true,
           items: auction.items,
@@ -7714,25 +7413,25 @@
       }
 
       async function allowWithoutPin(notifId, auctionId, buyerName) {
-        const data = await getOnlineData();
+        const data = getOnlineData();
 
-        await sendNotification(buyerName, {
+        sendNotification(buyerName, {
           type: "pinBypassed",
           auctionId: auctionId,
           from: playerName,
         });
 
-        await removeNotification(notifId);
+        removeNotification(notifId);
         return { success: true };
       }
 
       async function denyWithoutPin(notifId, buyerName) {
-        await sendNotification(buyerName, {
+        sendNotification(buyerName, {
           type: "pinDenied",
           from: playerName,
         });
 
-        await removeNotification(notifId);
+        removeNotification(notifId);
         return { success: true };
       }
 
@@ -7751,7 +7450,7 @@
 
       // ========== SKLEP Z LIMITEM ==========
       async function checkShopReset() {
-        const data = await getOnlineData();
+        const data = getOnlineData();
         if (!data.shop) data.shop = { lastReset: 0, items: {} };
 
         const now = Date.now();
@@ -7762,7 +7461,7 @@
           // Reset sklepu
           data.shop.lastReset = now;
           data.shop.items = {}; // Resetuj ilości
-          await saveOnlineData(data);
+          saveOnlineData(data);
         }
       }
 
@@ -7818,7 +7517,7 @@
           );
 
           // Sprawdź status bonu online
-          const onlineVoucher = await checkVoucherOnline(vid);
+          const onlineVoucher = checkVoucherOnline(vid);
 
           if (!onlineVoucher) {
             alert(t.voucherNotFound || "Nie znaleziono bonu!");
@@ -7851,7 +7550,7 @@
           }
 
           // Oznacz jako otwarty (pierwsze wejście)
-          await markVoucherOpened(vid);
+          markVoucherOpened(vid);
 
           // Sprawdź czy nadawca nie próbuje odebrać swojego bonu
           const save = getCurrentSave();
@@ -7969,7 +7668,7 @@
         if (voucherCountdownInterval) clearInterval(voucherCountdownInterval);
 
         // Pobierz czas otwarcia z serwera
-        const onlineVoucher = await checkVoucherOnline(voucherId);
+        const onlineVoucher = checkVoucherOnline(voucherId);
         if (!onlineVoucher || !onlineVoucher.firstOpenedAt) return;
 
         const startTime = onlineVoucher.firstOpenedAt;
@@ -8006,7 +7705,7 @@
         if (voucherCountdownInterval) clearInterval(voucherCountdownInterval);
 
         // Oznacz bon jako anulowany online
-        await cancelVoucherOnline(voucher.id);
+        cancelVoucherOnline(voucher.id);
         markVoucherAsUsed(voucher.id);
 
         closeModal("voucherPreview");
@@ -8041,7 +7740,7 @@
 
         // Oznacz bon jako wykorzystany
         if (voucher.isFromLink) {
-          await markVoucherUsedOnline(voucher.id);
+          markVoucherUsedOnline(voucher.id);
           markVoucherAsUsed(voucher.id);
         } else {
           // Bon lokalny - teraz odejmij pieniądze nadawcy
@@ -8120,7 +7819,7 @@
 
         // Oznacz stary bon jako wykorzystany
         if (voucher.isFromLink) {
-          await markVoucherUsedOnline(voucher.id);
+          markVoucherUsedOnline(voucher.id);
           markVoucherAsUsed(voucher.id);
         }
 
@@ -9034,6 +8733,76 @@
         updateSleepVisuals();
       }
 
+      // Przerwij pracę wcześniej (-3% wypłaty)
+      function quitWorkEarly() {
+        if (!confirm("Przerwać pracę? Dostaniesz 3% mniej wypłaty.")) return;
+
+        clearInterval(workInterval);
+        clearInterval(sleepInterval);
+        clearInterval(coinInterval);
+        stopWakeUp();
+
+        const t = translations[currentLang] || translations.en;
+        const basePay = currentJob.basePay;
+
+        // Proporcja przepracowanego czasu (120s = pełny czas)
+        const timeWorked = 120 - workTimeLeft;
+        const timeRatio = timeWorked / 120;
+
+        // Podstawa proporcjonalna do czasu
+        const proportionalBase = Math.round(basePay * timeRatio);
+
+        // Bonus za zebrane monety
+        const totalEarned = proportionalBase + workBonus;
+
+        // Kara za spanie
+        const sleepPenalty = (sleepLevel / 45) * 0.9;
+        const moneyLostSleep = Math.round(totalEarned * sleepPenalty);
+
+        // Kara 3% za wcześniejsze przerwanie
+        const earlyPenalty = 0.03;
+        const moneyLostEarly = Math.round(
+          (totalEarned - moneyLostSleep) * earlyPenalty
+        );
+
+        // Finalna wypłata (zaokrąglona)
+        const finalPay = Math.round(
+          totalEarned - moneyLostSleep - moneyLostEarly
+        );
+
+        money += finalPay;
+        saveState();
+        updateAllDisplays();
+
+        closeModal("workGame");
+        playSound("workEnd");
+
+        let msg = `💼 ${t.workInterrupted || "Praca przerwana!"}\n\n`;
+        msg += `⏱️ Przepracowano: ${Math.floor(timeWorked / 60)}:${(
+          timeWorked % 60
+        )
+          .toString()
+          .padStart(2, "0")}\n`;
+        msg += `${
+          t.basePay || "Podstawa"
+        }: ${proportionalBase.toLocaleString()} ${getCurrency()}\n`;
+        msg += `💰 ${
+          t.coinsCollected || "Zebrane monety"
+        }: +${workBonus.toLocaleString()} ${getCurrency()}\n`;
+        if (moneyLostSleep > 0) {
+          msg += `😴 ${
+            t.sleepPenalty || "Strata za spanie"
+          }: -${moneyLostSleep.toLocaleString()} ${getCurrency()}\n`;
+        }
+        msg += `⏹️ Kara za przerwanie: -${moneyLostEarly.toLocaleString()} ${getCurrency()} (3%)\n`;
+        msg += `\n${
+          t.total || "Razem"
+        }: ${finalPay.toLocaleString()} ${getCurrency()}`;
+
+        alert(msg);
+        currentJob = null;
+      }
+
       function endWork() {
         clearInterval(workInterval);
         clearInterval(sleepInterval);
@@ -9082,572 +8851,160 @@
       // ==================== UI SYSTEMU ONLINE ====================
 
       // Renderuj konto online
-      async function renderOnlineAccount() {
+      function renderOnlineAccount() {
         const t = translations[currentLang] || translations.en;
         const content = document.getElementById("onlineAccountContent");
 
-        if (!playerName) {
-          content.innerHTML = `
-                    <div style="text-align:center;padding:20px;">
-                        <p style="color:#888;">Musisz być zalogowany</p>
-                        <button onclick="location.reload()" style="padding:12px 24px;background:#3b82f6;color:white;border:none;border-radius:8px;cursor:pointer;margin-top:10px;">
-                            🔄 Odśwież stronę
-                        </button>
-                    </div>
-                `;
-        } else {
-          const friends = await getFriends();
-          const myCardNumber = cardCode || "---";
+        // Pobierz znajomych z localStorage
+        const friends = JSON.parse(
+          localStorage.getItem("beamng_friends") || "[]"
+        );
 
-          content.innerHTML = `
-                    <div style="text-align:center;margin-bottom:20px;">
-                        <div style="font-size:3em;margin-bottom:10px;">👤</div>
-                        <div style="font-size:1.3em;font-weight:bold;">${playerName}</div>
-                        <div style="color:#10b981;font-size:0.9em;">🟢 Online</div>
-                        <div style="color:#888;font-size:0.75em;margin-top:8px;">💳 Twój numer karty:</div>
-                        <div style="color:#4ade80;font-size:0.85em;font-family:monospace;background:#222;padding:5px 10px;border-radius:5px;display:inline-block;margin-top:3px;">${myCardNumber}</div>
-                    </div>
-                    
-                    <!-- Dodaj znajomego -->
-                    <div style="background:#1a1a2e;padding:15px;border-radius:10px;margin-bottom:15px;">
-                        <div style="font-weight:bold;margin-bottom:10px;">➕ ${
-                          t.addFriend || "Dodaj znajomego"
-                        }</div>
-                        <div style="display:flex;gap:8px;">
-                            <input type="text" id="addFriendInput" placeholder="${
-                              t.nameOrCardNumber || "Numer karty (6 cyfr)..."
-                            }" maxlength="6" style="flex:1;padding:10px;background:#222;border:1px solid #333;border-radius:6px;color:white;font-family:monospace;text-align:center;font-size:1.1em;">
-                            <button onclick="addFriend()" style="padding:10px 15px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;">➕</button>
-                        </div>
-                        <p style="color:#666;font-size:0.75em;margin-top:8px;">Poproś znajomego o jego numer karty</p>
-                    </div>
-                    
-                    <!-- Lista znajomych -->
-                    <div style="background:#1a1a2e;padding:15px;border-radius:10px;margin-bottom:15px;">
-                        <div style="font-weight:bold;margin-bottom:10px;">⭐ ${
-                          t.friends || "Znajomi"
-                        }: ${friends.length}</div>
-                        ${
-                          friends.length > 0
-                            ? `
-                            <div style="max-height:200px;overflow-y:auto;">
-                                ${friends
-                                  .map(
-                                    (f) => `
-                                    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#222;border-radius:6px;margin-bottom:5px;">
-                                        <span style="flex:1;">${
-                                          f.online ? "🟢" : "⚫"
-                                        } ${f.name}</span>
-                                        <div style="display:flex;gap:5px;">
-                                            <button onclick="openChat('${
-                                              f.name
-                                            }')" style="padding:6px 12px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.85em;">💬</button>
-                                            <button onclick="removeFriend('${
-                                              f.name
-                                            }')" style="padding:6px 12px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.85em;">✖</button>
-                                        </div>
+        content.innerHTML = `
+                <div style="text-align:center;margin-bottom:20px;">
+                    <div style="font-size:3em;margin-bottom:10px;">👤</div>
+                    <div style="font-size:1.3em;font-weight:bold;">${playerName}</div>
+                    <button onclick="editPlayerName()" style="margin-top:8px;padding:6px 15px;background:#333;color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.85em;">
+                        ✏️ ${t.editName || "Zmień nazwę"}
+                    </button>
+                </div>
+                
+                <!-- Zaproś znajomego -->
+                <div style="background:#1a1a2e;padding:15px;border-radius:10px;margin-bottom:15px;">
+                    <div style="font-weight:bold;margin-bottom:10px;">➕ ${
+                      t.inviteFriend || "Zaproś znajomego"
+                    }</div>
+                    <button onclick="generateFriendInviteLink()" style="width:100%;padding:12px;background:#10b981;color:white;border:none;border-radius:8px;cursor:pointer;">
+                        🔗 ${t.generateLink || "Wygeneruj link zaproszenia"}
+                    </button>
+                </div>
+                
+                <!-- Lista znajomych -->
+                <div style="background:#1a1a2e;padding:15px;border-radius:10px;margin-bottom:15px;">
+                    <div style="font-weight:bold;margin-bottom:10px;">⭐ ${
+                      t.friends || "Znajomi"
+                    }: ${friends.length}</div>
+                    ${
+                      friends.length > 0
+                        ? `
+                        <div style="max-height:200px;overflow-y:auto;">
+                            ${friends
+                              .map(
+                                (f) => `
+                                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#222;border-radius:6px;margin-bottom:5px;">
+                                    <span style="flex:1;">👤 ${f}</span>
+                                    <div style="display:flex;gap:5px;">
+                                        <button onclick="openChat('${f}')" style="padding:6px 12px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.85em;">💬</button>
+                                        <button onclick="removeFriend('${f}')" style="padding:6px 12px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.85em;">✖</button>
                                     </div>
-                                `
-                                  )
-                                  .join("")}
-                            </div>
-                        `
-                            : `<div style="color:#666;text-align:center;padding:15px;">${
-                                t.noFriends || "Brak znajomych"
-                              }<br><span style="font-size:0.85em;">Dodaj znajomych wpisując ich numer karty!</span></div>`
-                        }
-                    </div>
-                    
-                    <button onclick="logoutPlayer()" style="width:100%;padding:12px;background:#3b82f6;color:white;border:none;border-radius:8px;cursor:pointer;margin-bottom:10px;">
-                        🚪 ${t.logout || "Wyloguj się"}
-                    </button>
-                    <button onclick="deleteAccount()" style="width:100%;padding:12px;background:#ef4444;color:white;border:none;border-radius:8px;cursor:pointer;">
-                        🗑️ ${t.deleteAccount || "Usuń konto"}
-                    </button>
-                `;
-        }
+                                </div>
+                            `
+                              )
+                              .join("")}
+                        </div>
+                        <p style="color:#888;font-size:0.75em;margin-top:8px;text-align:center;">💬 Wiadomość: ${CHAT_MESSAGE_FEE.toFixed(
+                          2
+                        )} ${getCurrency()}</p>
+                    `
+                        : `<div style="color:#666;text-align:center;padding:15px;">${
+                            t.noFriends || "Brak znajomych"
+                          }<br><span style="font-size:0.85em;">Wyślij link zaproszenia!</span></div>`
+                    }
+                </div>
+            `;
       }
 
-      // ========== SYSTEM ZNAJOMYCH ==========
-      async function getFriends() {
-        const data = await getOnlineData();
-        if (
-          !data.players ||
-          !data.players[playerName] ||
-          !data.players[playerName].friends
-        ) {
-          return [];
-        }
+      // ========== SYSTEM ZNAJOMYCH (przez link) ==========
+      function generateFriendInviteLink() {
+        const baseUrl = window.location.href.split("?")[0];
+        const link = `${baseUrl}?friend_invite=${encodeURIComponent(
+          playerName
+        )}`;
 
-        const friendNames = data.players[playerName].friends;
-        const now = Date.now();
-        const ONLINE_TIMEOUT = 2 * 60 * 1000;
-
-        return friendNames
-          .map((name) => {
-            const player = data.players[name];
-            return {
-              name,
-              online: player
-                ? player.online && now - player.lastSeen < ONLINE_TIMEOUT
-                : false,
-            };
-          })
-          .sort((a, b) => {
-            if (a.online && !b.online) return -1;
-            if (!a.online && b.online) return 1;
-            return a.name.localeCompare(b.name);
+        if (navigator.share) {
+          navigator.share({
+            title: "Zaproszenie do znajomych - BeamNG Datapack",
+            text: `${playerName} zaprasza Cię do znajomych!`,
+            url: link,
           });
+        } else {
+          navigator.clipboard.writeText(link);
+          showToast("📋 Link skopiowany!");
+        }
       }
 
-      async function addFriend() {
-        const input = document.getElementById("addFriendInput");
-        const cardNumber = input.value.trim();
-        if (!cardNumber) return;
+      function checkFriendInvite() {
+        const params = new URLSearchParams(window.location.search);
+        const inviteFrom = params.get("friend_invite");
 
-        if (cardNumber.length !== 6 || !/^\d+$/.test(cardNumber)) {
-          showToast("❌ Wpisz 6-cyfrowy numer karty");
-          return;
+        if (inviteFrom && playerName && inviteFrom !== playerName) {
+          // Usuń parametr z URL
+          window.history.replaceState({}, "", window.location.pathname);
+
+          // Pokaż modal potwierdzenia
+          if (
+            confirm(
+              `👋 ${inviteFrom} zaprasza Cię do znajomych!\n\nCzy chcesz dodać ${inviteFrom} do znajomych?`
+            )
+          ) {
+            addFriendDirect(inviteFrom);
+          }
         }
+      }
 
-        const friendName = await findPlayerByCardNumber(cardNumber);
-        if (!friendName) {
-          showToast("❌ Nie znaleziono gracza z tym numerem karty");
-          return;
-        }
+      function addFriendDirect(friendName) {
+        let friends = JSON.parse(
+          localStorage.getItem("beamng_friends") || "[]"
+        );
 
-        if (friendName === playerName) {
-          showToast("❌ Nie możesz dodać siebie");
-          return;
-        }
-
-        // Sprawdź czy już są znajomymi
-        const data = await getOnlineData();
-        if (data.players[playerName]?.friends?.includes(friendName)) {
+        if (friends.includes(friendName)) {
           showToast("ℹ️ Już jest znajomym");
           return;
         }
 
-        // Dodaj do znajomych u obu graczy od razu
-        if (!data.players[playerName].friends)
-          data.players[playerName].friends = [];
-        if (!data.players[friendName].friends)
-          data.players[friendName].friends = [];
-
-        data.players[playerName].friends.push(friendName);
-        if (!data.players[friendName].friends.includes(playerName)) {
-          data.players[friendName].friends.push(playerName);
-        }
-
-        await saveOnlineData(data);
+        friends.push(friendName);
+        localStorage.setItem("beamng_friends", JSON.stringify(friends));
 
         showToast(`✅ Dodano ${friendName} do znajomych!`);
-        input.value = "";
         renderOnlineAccount();
       }
 
-      async function removeFriend(friendName) {
-        const data = await getOnlineData();
-        if (
-          !data.players ||
-          !data.players[playerName] ||
-          !data.players[playerName].friends
-        )
-          return;
+      function removeFriend(friendName) {
+        if (!confirm(`Usunąć ${friendName} ze znajomych?`)) return;
 
-        // Usuń u obu graczy
-        data.players[playerName].friends = data.players[
-          playerName
-        ].friends.filter((f) => f !== friendName);
-        if (data.players[friendName]?.friends) {
-          data.players[friendName].friends = data.players[
-            friendName
-          ].friends.filter((f) => f !== playerName);
-        }
+        let friends = JSON.parse(
+          localStorage.getItem("beamng_friends") || "[]"
+        );
+        friends = friends.filter((f) => f !== friendName);
+        localStorage.setItem("beamng_friends", JSON.stringify(friends));
 
-        await saveOnlineData(data);
-
-        showToast(`🗑️ Usunięto ${friendName} ze znajomych`);
+        showToast(`🗑️ Usunięto ${friendName}`);
         renderOnlineAccount();
       }
 
-      async function findPlayerByCardNumber(cardNumber) {
-        const data = await getOnlineData();
-        if (!data.players) return null;
-
-        // Szukaj tylko po numerze karty
-        for (const [name, player] of Object.entries(data.players)) {
-          if (player.cardNumber === cardNumber) {
-            return name;
-          }
-        }
-
-        return null;
+      function getFriendsList() {
+        return JSON.parse(localStorage.getItem("beamng_friends") || "[]");
       }
 
-      // Dla bonów - szukaj po nazwie LUB numerze karty
-      async function findPlayerByNameOrCard(query) {
-        const data = await getOnlineData();
-        if (!data.players) return null;
-
-        // Szukaj po nazwie
-        if (data.players[query]) {
-          return query;
-        }
-
-        // Szukaj po numerze karty
-        for (const [name, player] of Object.entries(data.players)) {
-          if (player.cardNumber === query) {
-            return name;
-          }
-        }
-
-        return null;
-      }
-
-      async function findAndChatPlayer() {
-        const input = document.getElementById("findPlayerInput");
-        const cardNumber = input.value.trim();
-        const t = translations[currentLang] || translations.en;
-
-        if (!cardNumber) return;
-
-        if (cardNumber.length !== 16 || !/^\d+$/.test(cardNumber)) {
-          showToast("❌ Wpisz 16-cyfrowy numer karty");
-          return;
-        }
-
-        const foundName = await findPlayerByCardNumber(cardNumber);
-        if (foundName) {
-          openChat(foundName);
-          input.value = "";
-          closeModal("onlineAccount");
-        } else {
-          showToast(
-            t.playerNotFound || "❌ Nie znaleziono gracza z tym numerem karty"
-          );
-        }
-      }
-
-      // Aktualizacja statusu online co 5 sekund
-      let notificationInterval = null;
-
-      function startOnlineStatusUpdater() {
-        if (playerName) {
-          updatePlayerStatus();
-          checkNotifications();
-
-          // Sprawdzaj co 3 sekundy
-          if (notificationInterval) clearInterval(notificationInterval);
-          notificationInterval = setInterval(() => {
-            if (playerName) {
-              updatePlayerStatus();
-              checkNotifications();
-
-              // Jeśli modal powiadomień jest otwarty, odśwież listę
-              const modalNotif = document.getElementById("modalNotifications");
-              if (modalNotif && modalNotif.classList.contains("active")) {
-                renderNotifications();
-              }
-
-              // Jeśli modal aukcji jest otwarty, odśwież listę
-              const modalAuction = document.getElementById("modalAuction");
-              if (modalAuction && modalAuction.classList.contains("active")) {
-                renderAuctionList();
-              }
-            }
-          }, 3000);
-        }
-      }
-
-      // Renderuj powiadomienia
-      async function renderNotifications() {
+      // Powiadomienia - uproszczone (lokalne)
+      function renderNotifications() {
         const t = translations[currentLang] || translations.en;
         const list = document.getElementById("notificationsList");
-
-        if (!playerName) {
-          list.innerHTML = `<p style="color:#888;text-align:center;">${
-            t.loginFirst || "Najpierw się zaloguj"
-          }</p>`;
-          return;
-        }
-
-        const notifs = await getMyNotifications();
-
-        if (notifs.length === 0) {
-          list.innerHTML = `<p style="color:#888;text-align:center;">${
-            t.noNotifications || "Brak powiadomień"
-          }</p>`;
-          return;
-        }
-
-        list.innerHTML = notifs
-          .sort((a, b) => b.timestamp - a.timestamp)
-          .map((n) => {
-            const timeAgo = formatTimeAgo(n.timestamp);
-            let icon = "📩";
-            let text = "";
-            let actions = "";
-
-            switch (n.type) {
-              case "voucher":
-                icon = "🎁";
-                text = `${n.from} ${
-                  t.sentYouVoucher || "wysłał Ci bon"
-                }: ${n.amount.toLocaleString()} ${getCurrency()}`;
-                actions = `
-                            <button onclick="acceptVoucherNotif('${n.id}', '${n.voucherId}')" style="padding:8px 12px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;margin-right:5px;">✅</button>
-                            <button onclick="rejectVoucherNotif('${n.id}', '${n.voucherId}')" style="padding:8px 12px;background:#ef4444;color:white;border:none;border-radius:6px;cursor:pointer;">❌</button>
-                        `;
-                break;
-              case "newBid":
-                icon = "💰";
-                text = `${n.from} ${
-                  t.bidOn || "zalicytował"
-                }: ${n.amount.toLocaleString()} ${getCurrency()}`;
-                break;
-              case "negotiation":
-                icon = "🤝";
-                text = `${n.from} ${
-                  t.wantsToNegotiate || "chce negocjować"
-                }: ${n.offeredPrice.toLocaleString()} ${getCurrency()}`;
-                actions = `
-                            <button onclick="respondNegotiation('${n.id}', '${n.auctionId}', 'accept')" style="padding:6px 10px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;margin:2px;">✅</button>
-                            <button onclick="respondNegotiation('${n.id}', '${n.auctionId}', 'reject')" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:6px;cursor:pointer;margin:2px;">❌</button>
-                            <button onclick="showCounterOffer('${n.id}', '${n.auctionId}', '${n.from}')" style="padding:6px 10px;background:#f59e0b;color:white;border:none;border-radius:6px;cursor:pointer;margin:2px;">💬</button>
-                        `;
-                break;
-              case "counterOffer":
-                icon = "💬";
-                text = `${n.from} ${
-                  t.counterOffer || "kontr-oferta"
-                }: ${n.counterOffer.toLocaleString()} ${getCurrency()}`;
-                actions = `
-                            <button onclick="acceptCounterOffer('${n.id}', '${n.auctionId}', ${n.counterOffer})" style="padding:6px 10px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;margin:2px;">✅</button>
-                            <button onclick="rejectCounterOffer('${n.id}')" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:6px;cursor:pointer;margin:2px;">❌</button>
-                        `;
-                break;
-              case "auctionSold":
-                icon = "🎉";
-                text = `${n.from} ${
-                  t.boughtYourItem || "kupił Twój przedmiot"
-                } za ${n.price.toLocaleString()} ${getCurrency()}`;
-                break;
-              case "pinRequired":
-                icon = "🔐";
-                text = `${n.from}: ${n.message}`;
-                actions = `
-                            <button onclick="allowWithoutPinUI('${n.id}', '${
-                  n.auctionId
-                }', '${
-                  n.from
-                }')" style="padding:6px 10px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;margin:2px;">${
-                  t.allow || "Pozwól"
-                }</button>
-                            <button onclick="denyWithoutPinUI('${n.id}', '${
-                  n.from
-                }')" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:6px;cursor:pointer;margin:2px;">${
-                  t.deny || "Odmów"
-                }</button>
-                        `;
-                break;
-              case "pinBypassed":
-                icon = "✅";
-                text = `${n.from} ${
-                  t.allowedWithoutPin || "pozwolił kupić bez PIN"
-                }`;
-                break;
-              case "pinDenied":
-                icon = "❌";
-                text = `${n.from} ${
-                  t.deniedWithoutPin || "nie pozwolił kupić bez PIN"
-                }`;
-                break;
-              case "negotiationAccepted":
-                icon = "✅";
-                text =
-                  t.yourOfferAccepted || "Twoja oferta została zaakceptowana!";
-                break;
-              case "negotiationRejected":
-                icon = "❌";
-                text = t.yourOfferRejected || "Twoja oferta została odrzucona";
-                break;
-              case "chatMessage":
-                icon = "💬";
-                text = `${n.from}: ${n.preview || "..."}`;
-                actions = `<button onclick="openChat('${
-                  n.from
-                }')" style="padding:6px 10px;background:#3b82f6;color:white;border:none;border-radius:6px;cursor:pointer;">${
-                  t.reply || "Odpowiedz"
-                }</button>`;
-                break;
-              case "voucherAccepted":
-                icon = "✅";
-                text = `${n.from} ${
-                  t.acceptedYourVoucher || "przyjął Twój bon"
-                }: ${n.amount.toLocaleString()} ${getCurrency()}`;
-                break;
-              case "voucherRejected":
-                icon = "❌";
-                text = `${n.from} ${
-                  t.rejectedYourVoucher || "odrzucił Twój bon"
-                }: ${n.amount.toLocaleString()} ${getCurrency()}`;
-                break;
-              case "friendRequest":
-                icon = "👋";
-                text = `${n.from} ${
-                  t.wantsToBeYourFriend || "chce dodać Cię do znajomych!"
-                }`;
-                actions = `
-                            <button onclick="acceptFriendRequest('${n.id}', '${
-                  n.from
-                }')" style="padding:8px 15px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;margin-right:5px;">✅ ${
-                  t.accept || "Akceptuj"
-                }</button>
-                            <button onclick="rejectFriendRequest('${n.id}', '${
-                  n.from
-                }')" style="padding:8px 15px;background:#ef4444;color:white;border:none;border-radius:6px;cursor:pointer;">❌ ${
-                  t.reject || "Odrzuć"
-                }</button>
-                        `;
-                break;
-              case "friendAccepted":
-                icon = "🎉";
-                text = `${n.from} ${
-                  t.acceptedYourFriendRequest ||
-                  "zaakceptował zaproszenie! Jesteście znajomymi."
-                }`;
-                break;
-              case "friendRejected":
-                icon = "😢";
-                text = `${n.from} ${
-                  t.rejectedYourFriendRequest ||
-                  "odrzucił zaproszenie do znajomych"
-                }`;
-                break;
-              default:
-                text = n.message || "Powiadomienie";
-            }
-
-            // Dodaj przycisk czatu dla znajomych
-            const chatButton = "";
-
-            return `
-                    <div style="background:${
-                      n.read ? "#1a1a2e" : "#2a2a4e"
-                    };padding:12px;border-radius:8px;margin-bottom:8px;${
-              n.read ? "" : "border-left:3px solid #3b82f6;"
-            }">
-                        <div style="display:flex;justify-content:space-between;align-items:start;">
-                            <div style="flex:1;cursor:${
-                              n.from ? "pointer" : "default"
-                            };" ${
-              n.from ? `onclick="openChat('${n.from}')"` : ""
-            }>
-                                <span style="font-size:1.2em;">${icon}</span> ${text} ${chatButton}
-                                <div style="color:#666;font-size:0.8em;margin-top:5px;">${timeAgo}</div>
-                            </div>
-                            <button onclick="event.stopPropagation(); dismissNotification('${
-                              n.id
-                            }')" style="background:none;border:none;color:#666;cursor:pointer;font-size:1.2em;">×</button>
-                        </div>
-                        ${
-                          actions
-                            ? `<div style="margin-top:10px;" onclick="event.stopPropagation();">${actions}</div>`
-                            : ""
-                        }
-                    </div>
-                `;
-          })
-          .join("");
-
-        // Oznacz jako przeczytane
-        for (const n of notifs.filter((n) => !n.read)) {
-          await markNotificationRead(n.id);
-        }
-        unreadNotifications = 0;
-        updateNotificationBadge();
-      }
-
-      function formatTimeAgo(timestamp) {
-        const seconds = Math.floor((Date.now() - timestamp) / 1000);
-        if (seconds < 60)
-          return currentLang === "pl" ? "przed chwilą" : "just now";
-        const minutes = Math.floor(seconds / 60);
-        if (minutes < 60) return `${minutes} min`;
-        const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours}h`;
-        return `${Math.floor(hours / 24)}d`;
-      }
-
-      async function dismissNotification(notifId) {
-        await removeNotification(notifId);
-        renderNotifications();
-      }
-
-      async function acceptVoucherNotif(notifId, voucherId) {
-        const t = translations[currentLang] || translations.en;
-        const save = getCurrentSave();
-
-        // Pobierz szczegóły z powiadomienia
-        const notifs = await getMyNotifications();
-        const notif = notifs.find((n) => n.id === notifId);
-        if (!notif) return;
-
-        // Dodaj pieniądze
-        money += notif.amount;
-        saveState();
-        updateAllDisplays();
-
-        // Wyślij potwierdzenie do nadawcy
-        await sendNotification(notif.from, {
-          type: "voucherAccepted",
-          from: playerName,
-          amount: notif.amount,
-        });
-
-        // Usuń powiadomienie
-        await removeNotification(notifId);
-
-        playSound("voucher");
-        alert(
-          `✅ ${
-            t.voucherAccepted || "Bon przyjęty!"
-          }\n+${notif.amount.toLocaleString()} ${getCurrency()}`
-        );
-        renderNotifications();
-      }
-
-      async function rejectVoucherNotif(notifId, voucherId) {
-        const t = translations[currentLang] || translations.en;
-
-        // Pobierz szczegóły z powiadomienia
-        const notifs = await getMyNotifications();
-        const notif = notifs.find((n) => n.id === notifId);
-        if (!notif) return;
-
-        // Wyślij powiadomienie do nadawcy że odrzucono
-        await sendNotification(notif.from, {
-          type: "voucherRejected",
-          from: playerName,
-          amount: notif.amount,
-        });
-
-        // Usuń powiadomienie
-        await removeNotification(notifId);
-
-        alert(t.voucherRejected || "Bon odrzucony");
-        renderNotifications();
+        list.innerHTML = `<p style="color:#888;text-align:center;">${
+          t.noNotifications || "Brak powiadomień"
+        }</p>`;
       }
 
       // ========== SYSTEM CZATU ==========
       let currentChatUser = null;
       let chatInterval = null;
 
-      async function openChat(username) {
+      function openChat(username) {
+        if (!playerName) return;
+
         // Sprawdź czy to znajomy
-        const friends = await getFriends();
-        const isFriend = friends.some((f) => f.name === username);
+        const friends = getFriendsList();
+        const isFriend = friends.includes(username);
 
         if (!isFriend) {
           showToast("❌ Możesz pisać tylko ze znajomymi!");
@@ -9673,10 +9030,10 @@
         closeModal("chat");
       }
 
-      async function loadChatMessages() {
+      function loadChatMessages() {
         if (!currentChatUser || !playerName) return;
 
-        const data = await getOnlineData();
+        const data = getOnlineData();
         if (!data.chats) data.chats = {};
 
         // Chat ID to posortowane nazwy użytkowników
@@ -9715,31 +9072,30 @@
         container.scrollTop = container.scrollHeight;
       }
 
-      async function sendChatMessage() {
+      function sendChatMessage() {
         const input = document.getElementById("chatInput");
         const text = input.value.trim();
         if (!text || !currentChatUser || !playerName) return;
 
         const save = getCurrentSave();
-        const messageCost = 5.5;
         const t = translations[currentLang] || translations.en;
 
         // Sprawdź czy stać na wiadomość
-        if (save.data.money < messageCost) {
+        if (save.data.money < CHAT_MESSAGE_FEE) {
           showToast(
-            `❌ ${t.notEnoughMoney || "Brak środków"} (${messageCost.toFixed(
-              2
-            )} ${getCurrency()})`
+            `❌ ${
+              t.notEnoughMoney || "Brak środków"
+            } (${CHAT_MESSAGE_FEE.toFixed(2)} ${getCurrency()})`
           );
           return;
         }
 
         // Pobierz opłatę
-        save.data.money -= messageCost;
+        save.data.money -= CHAT_MESSAGE_FEE;
         saveSaveData();
         updateAllDisplays();
 
-        const data = await getOnlineData();
+        const data = getOnlineData();
         if (!data.chats) data.chats = {};
 
         const chatId = [playerName, currentChatUser].sort().join("_");
@@ -9761,10 +9117,10 @@
           data.chats[chatId].messages = data.chats[chatId].messages.slice(-100);
         }
 
-        await saveOnlineData(data);
+        saveOnlineData(data);
 
         // Wyślij powiadomienie do drugiej osoby
-        await sendNotification(currentChatUser, {
+        sendNotification(currentChatUser, {
           type: "chatMessage",
           from: playerName,
           preview: text.substring(0, 50),
@@ -9792,7 +9148,6 @@
         document.getElementById(
           "tab" + tab.charAt(0).toUpperCase() + tab.slice(1)
         ).style.background = "#333";
-        await renderAuctionContent();
       }
 
       async function renderAuctionContent() {
@@ -10424,7 +9779,7 @@
         }
 
         // Utwórz aukcję
-        const data = await getOnlineData();
+        const data = getOnlineData();
         if (!data.auctions) data.auctions = {};
 
         const auctionId =
@@ -10443,7 +9798,7 @@
           negotiations: [],
         };
 
-        await saveOnlineData(data);
+        saveOnlineData(data);
 
         // Usuń przedmioty z inwentarza
         auctionSelectedCars
@@ -10472,7 +9827,6 @@
         }
         alert(resultMsg);
         updateAllDisplays();
-        await renderAuctionContent();
       }
 
       function getItemIcon(item) {
@@ -10496,7 +9850,7 @@
           return;
         }
 
-        const data = await getOnlineData();
+        const data = getOnlineData();
         if (!data.auctions || !data.auctions[auctionId]) return;
 
         const auction = data.auctions[auctionId];
@@ -10524,18 +9878,17 @@
 
         // Usuń aukcję
         delete data.auctions[auctionId];
-        await saveOnlineData(data);
+        saveOnlineData(data);
 
         saveState();
         updateAllDisplays();
 
         alert(`✅ ${t.auctionCancelled || "Aukcja anulowana!"}`);
-        await renderAuctionContent();
       }
 
       async function showAuctionDetail(auctionId) {
         const t = translations[currentLang] || translations.en;
-        const data = await getOnlineData();
+        const data = getOnlineData();
         const auction = data.auctions[auctionId];
         if (!auction) return;
 
@@ -10619,7 +9972,7 @@
 
       async function buyAuctionItem(auctionId) {
         const t = translations[currentLang] || translations.en;
-        const data = await getOnlineData();
+        const data = getOnlineData();
         const auction = data.auctions[auctionId];
 
         if (auction.price > limit) {
@@ -10669,7 +10022,6 @@
           updateAllDisplays();
           closeModal("auctionDetail");
           alert(`✅ ${t.purchaseSuccess || "Zakup udany!"}`);
-          await renderAuctionContent();
         } else if (result.error === "noMoney") {
           alert(t.notEnoughMoney || "Nie masz wystarczająco pieniędzy!");
         }
@@ -10681,10 +10033,10 @@
         closeModal("pin");
 
         if (pendingAuctionId) {
-          const data = await getOnlineData();
+          const data = getOnlineData();
           const auction = data.auctions[pendingAuctionId];
 
-          await sendNotification(auction.seller, {
+          sendNotification(auction.seller, {
             type: "pinRequired",
             from: playerName,
             auctionId: pendingAuctionId,
@@ -10722,13 +10074,13 @@
       }
 
       async function respondNegotiation(notifId, auctionId, response) {
-        const data = await getOnlineData();
+        const data = getOnlineData();
         const auction = data.auctions[auctionId];
         if (!auction) return;
 
         const negIndex = auction.negotiations.length - 1;
         await respondToNegotiation(auctionId, negIndex, response, null);
-        await removeNotification(notifId);
+        removeNotification(notifId);
         renderNotifications();
       }
 
@@ -10740,12 +10092,12 @@
         const priceNum = parseInt(price);
         if (isNaN(priceNum) || priceNum <= 0) return;
 
-        const data = await getOnlineData();
+        const data = getOnlineData();
         const auction = data.auctions[auctionId];
         const negIndex = auction.negotiations.length - 1;
 
         await respondToNegotiation(auctionId, negIndex, "counter", priceNum);
-        await removeNotification(notifId);
+        removeNotification(notifId);
         renderNotifications();
       }
 
@@ -10766,14 +10118,10 @@
         startInsuranceTimer();
         checkUrlForVoucher();
 
-        // Wyczyść stare konta (bez hasła) - jednorazowo
-        cleanOldAccounts();
-
         // Sprawdź czy zalogowany - jeśli nie, pokaż ekran logowania
         if (!checkRequireLogin()) {
-          // Zalogowany - uruchom system online
-          startOnlineStatusUpdater();
-          checkNotifications();
+          // Sprawdź zaproszenie do znajomych
+          checkFriendInvite();
         }
 
         // Event listenery dla modali
@@ -10805,7 +10153,7 @@
       }
 
       async function generateCardCode() {
-        const data = await getOnlineData();
+        const data = getOnlineData();
         const existingCards = new Set();
 
         // Zbierz wszystkie istniejące numery kart
@@ -12434,7 +11782,7 @@
       }
 
       // ==================== MODALS ====================
-      async function openModal(type) {
+      function openModal(type) {
         document
           .getElementById(
             "modal" + type.charAt(0).toUpperCase() + type.slice(1)
@@ -12449,11 +11797,6 @@
         if (type === "pin") {
           currentPin = "";
           updatePinDisplay();
-          // Pokaż przycisk "Nie pamiętam" tylko dla aukcji
-          const forgotBtn = document.getElementById("forgotPinBtnContainer");
-          if (forgotBtn)
-            forgotBtn.style.display =
-              pendingAction === "buyAuction" ? "block" : "none";
         }
         if (type === "sell") {
           renderGarage();
@@ -12495,13 +11838,10 @@
           renderJobsList();
         }
         if (type === "onlineAccount") {
-          await renderOnlineAccount();
+          renderOnlineAccount();
         }
         if (type === "notifications") {
-          await renderNotifications();
-        }
-        if (type === "auction") {
-          await renderAuctionContent();
+          renderNotifications();
         }
       }
 
