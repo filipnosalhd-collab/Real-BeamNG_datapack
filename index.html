@@ -12784,7 +12784,7 @@
           if (!document.hidden) {
             checkMissedTaxes();
             updateAllDisplays();
-            processBusinessWeeklyPayments();
+            processAutomaticBusinessDays();
           }
         });
         window.addEventListener("beforeunload", saveState);
@@ -13295,7 +13295,7 @@
           };
         }
 
-        // Generuj losowego pracownika
+        // Generuj losowego pracownika z pełnym kontraktem
         function generateWorker(position = "regular") {
           const isMale = Math.random() > 0.5;
           const names = isMale ? WORKER_NAMES.male : WORKER_NAMES.female;
@@ -13313,11 +13313,79 @@
             personalities[Math.floor(Math.random() * personalities.length)];
           const pos = positions[position];
 
-          const expectedSalary = Math.floor(
+          // Bazowa dniówka (tygodniówka / 7)
+          const baseWeeklySalary = Math.floor(
             pos.baseSalary * personality.salaryMod * (0.9 + Math.random() * 0.3)
           );
-          const minSalary = Math.floor(expectedSalary * 0.7);
+          const expectedDailySalary = Math.floor(baseWeeklySalary / 7);
+          const minDailySalary = Math.floor(expectedDailySalary * 0.7);
           const bonusPercent = Math.floor(5 + Math.random() * 20);
+
+          // Losowe dodatkowe cechy wpływające na cenę
+          const hasExperience = Math.random() > 0.6; // 40% ma doświadczenie
+          const hasReferences = Math.random() > 0.5; // 50% ma referencje
+          const needsTraining =
+            personality.id === "newbie" || Math.random() > 0.7;
+          const isFlexible = Math.random() > 0.6; // 40% jest elastyczny z godzinami
+          const wantsStability = Math.random() > 0.5; // 50% chce stałą umowę
+          const expectsBonus = Math.random() > 0.4; // 60% oczekuje bonusu za podpis
+
+          // Modyfikatory ceny za cechy
+          let priceModifier = 1.0;
+          const priceReasons = [];
+
+          if (hasExperience) {
+            priceModifier += 0.15;
+            priceReasons.push({ id: "experience", mod: "+15%" });
+          }
+          if (hasReferences) {
+            priceModifier += 0.1;
+            priceReasons.push({ id: "references", mod: "+10%" });
+          }
+          if (needsTraining) {
+            priceModifier -= 0.2;
+            priceReasons.push({ id: "training", mod: "-20%" });
+          }
+          if (isFlexible) {
+            priceModifier -= 0.05;
+            priceReasons.push({ id: "flexible", mod: "-5%" });
+          }
+          if (personality.id === "perfectionist") {
+            priceReasons.push({ id: "perfectionist", mod: "+20%" });
+          }
+          if (personality.id === "experienced") {
+            priceReasons.push({ id: "skilled", mod: "+50%" });
+          }
+          if (personality.id === "lazy") {
+            priceReasons.push({ id: "lowEffort", mod: "-20%" });
+          }
+          if (personality.id === "newbie") {
+            priceReasons.push({ id: "beginner", mod: "-40%" });
+          }
+          if (personality.id === "ambitious") {
+            priceReasons.push({ id: "ambitious", mod: "+30%" });
+          }
+
+          // Dodaj powód za stanowisko
+          priceReasons.push({
+            id: "position_" + position,
+            mod: pos.baseSalary + " base",
+          });
+
+          // Finalna dniówka
+          const finalDailySalary = Math.floor(
+            expectedDailySalary * priceModifier
+          );
+
+          // Oczekiwany bonus za podpis (0-500)
+          const signingBonus = expectsBonus
+            ? Math.floor(100 + Math.random() * 400)
+            : 0;
+
+          // Oczekiwane wyniki (ilość klientów obsłużonych dziennie)
+          const expectedPerformance = Math.floor(
+            5 + personality.productivityMod * 10
+          );
 
           return {
             id: Date.now() + Math.random().toString(36).substr(2, 9),
@@ -13326,18 +13394,82 @@
             position: position,
             positionName: pos.name,
             personality: personality,
-            expectedSalary: expectedSalary,
-            minSalary: minSalary,
-            currentSalary: null,
+
+            // Wynagrodzenie
+            expectedDailySalary: finalDailySalary,
+            minDailySalary: minDailySalary,
+            currentDailySalary: null,
             bonusPercent: bonusPercent,
+
+            // Stare pola dla kompatybilności
+            expectedSalary: finalDailySalary * 7,
+            minSalary: minDailySalary * 7,
+            currentSalary: null,
+
+            // Cechy dodatkowe
+            hasExperience: hasExperience,
+            hasReferences: hasReferences,
+            needsTraining: needsTraining,
+            isFlexible: isFlexible,
+            wantsStability: wantsStability,
+
+            // Powody ceny
+            priceReasons: priceReasons,
+
+            // Kontrakt
+            signingBonus: signingBonus,
+            expectedPerformance: expectedPerformance,
+            contractType: null, // 'fixed' lub 'performance' - ustala pracodawca
+            canReduceSalary: false, // czy można obniżyć - ustala pracodawca
+
+            // Status
             hired: false,
             productivity: personality.productivityMod,
             satisfaction: 100,
             daysWorked: 0,
             totalEarned: 0,
+            dailyClientsServed: 0, // średnia klientów dziennie
+            performanceHistory: [], // historia wyników
+
             chatHistory: [],
-            negotiationState: "initial", // initial, negotiating, accepted, rejected
+            negotiationState: "initial",
           };
+        }
+
+        // Tłumaczenia powodów ceny
+        function getPriceReasonText(reasonId) {
+          const isEn = currentLang === "en";
+          const reasons = {
+            experience: isEn
+              ? "Has work experience"
+              : "Ma doświadczenie zawodowe",
+            references: isEn ? "Has references" : "Ma referencje",
+            training: isEn ? "Needs training" : "Wymaga przeszkolenia",
+            flexible: isEn ? "Flexible hours" : "Elastyczne godziny",
+            perfectionist: isEn
+              ? "Perfectionist - high quality"
+              : "Perfekcjonista - wysoka jakość",
+            skilled: isEn ? "Highly skilled" : "Wysoko wykwalifikowany",
+            lowEffort: isEn ? "Lower effort" : "Mniejszy wysiłek",
+            beginner: isEn ? "Beginner - learning" : "Początkujący - uczy się",
+            ambitious: isEn
+              ? "Ambitious - high demands"
+              : "Ambitny - duże wymagania",
+            position_manager: isEn
+              ? "Manager position"
+              : "Stanowisko kierownika",
+            position_senior: isEn
+              ? "Senior position"
+              : "Stanowisko starszego pracownika",
+            position_regular: isEn
+              ? "Regular position"
+              : "Stanowisko pracownika",
+            position_junior: isEn
+              ? "Junior position"
+              : "Stanowisko młodszego pracownika",
+            position_intern: isEn ? "Intern position" : "Stanowisko stażysty",
+          };
+          return reasons[reasonId] || reasonId;
         }
 
         // Generuj klienta dla firmy
@@ -14093,7 +14225,7 @@
           inputDiv.style.display = "none";
           optionsDiv.innerHTML = "";
 
-          // Jeśli już zatrudniony lub odrzucony - pokaż tylko przycisk powrotu
+          // Jeśli już zatrudniony lub odrzucony
           if (
             worker.negotiationState === "accepted" ||
             worker.negotiationState === "rejected"
@@ -14106,123 +14238,316 @@
             return;
           }
 
+          const dailySalary =
+            worker.expectedDailySalary || Math.floor(worker.expectedSalary / 7);
+          const weeklySalary = dailySalary * 7;
+
           // Stan negocjacji
           if (worker.negotiationState === "initial") {
-            // Pierwsze powitanie pracownika
-            const greetings = [
-              t.greeting1
-                .replace("{name}", worker.name)
-                .replace("{position}", worker.positionName.toLowerCase()),
-              t.greeting2.replace("{name}", worker.name),
-              t.greeting3
-                .replace("{name}", worker.name)
-                .replace("{position}", worker.positionName.toLowerCase()),
-            ];
-
             if (worker.chatHistory.length === 0) {
-              worker.chatHistory.push({
-                from: "worker",
-                text: greetings[Math.floor(Math.random() * greetings.length)],
-              });
-              worker.chatHistory.push({
-                from: "worker",
-                text: t.salaryExpectation
-                  .replace("{salary}", worker.expectedSalary)
-                  .replace("{currency}", getCurrency())
-                  .replace("{bonus}", worker.bonusPercent),
-              });
-              saveBusinesses(businesses);
+              // Powitanie
+              const greetings = [
+                isEn
+                  ? `Hello! I'm ${
+                      worker.name
+                    }, applying for ${worker.positionName.toLowerCase()}.`
+                  : `Dzień dobry! Jestem ${
+                      worker.name
+                    }, aplikuję na stanowisko ${worker.positionName.toLowerCase()}.`,
+              ];
+              worker.chatHistory.push({ from: "worker", text: greetings[0] });
 
-              // Odśwież wiadomości
-              messagesDiv.innerHTML = worker.chatHistory
-                .map(
-                  (msg) => `
-              <div style="margin-bottom: 12px; ${
-                msg.from === "player" ? "text-align: right;" : ""
-              }">
-                <div style="display: inline-block; max-width: 80%; padding: 10px 15px; border-radius: 15px; background: ${
-                  msg.from === "player" ? "#3b82f6" : "#333"
-                };">
-                  ${msg.text}
-                </div>
-              </div>
-            `
-                )
-                .join("");
-              messagesDiv.scrollTop = messagesDiv.scrollHeight;
+              // Powody ceny
+              let reasonsText = isEn
+                ? "My salary expectations are based on:"
+                : "Moje oczekiwania płacowe wynikają z:";
+              if (worker.priceReasons && worker.priceReasons.length > 0) {
+                worker.priceReasons.forEach((r) => {
+                  reasonsText += `\n• ${getPriceReasonText(r.id)} (${r.mod})`;
+                });
+              }
+              worker.chatHistory.push({ from: "worker", text: reasonsText });
+
+              // Oczekiwania
+              const expectText = isEn
+                ? `I expect: ${dailySalary} ${getCurrency()}/day (${weeklySalary} ${getCurrency()}/week) + ${
+                    worker.bonusPercent
+                  }% commission from sales.`
+                : `Oczekuję: ${dailySalary} ${getCurrency()}/dzień (${weeklySalary} ${getCurrency()}/tydzień) + ${
+                    worker.bonusPercent
+                  }% prowizji od sprzedaży.`;
+              worker.chatHistory.push({ from: "worker", text: expectText });
+
+              // Bonus za podpis jeśli oczekuje
+              if (worker.signingBonus > 0) {
+                const bonusText = isEn
+                  ? `I would also expect a signing bonus of ${
+                      worker.signingBonus
+                    } ${getCurrency()}.`
+                  : `Oczekuję również premii za podpisanie umowy: ${
+                      worker.signingBonus
+                    } ${getCurrency()}.`;
+                worker.chatHistory.push({ from: "worker", text: bonusText });
+              }
+
+              // Oczekiwane wyniki
+              const perfText = isEn
+                ? `I can handle about ${worker.expectedPerformance} clients per day.`
+                : `Mogę obsłużyć około ${worker.expectedPerformance} klientów dziennie.`;
+              worker.chatHistory.push({ from: "worker", text: perfText });
+
+              saveBusinesses(businesses);
             }
 
-            // Opcje odpowiedzi - zawsze dostępne
-            optionsDiv.innerHTML = `
-            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'accept')" style="padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer;">
-              ✅ ${t.acceptTermsBtn} (${worker.expectedSalary}/${
-              isEn ? "wk" : "tyg"
-            } + ${worker.bonusPercent}%)
-            </button>
-            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'counter_salary')" style="padding: 12px; background: #f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer;">
-              💰 ${isEn ? "Propose different salary" : "Zaproponuj inną pensję"}
-            </button>
-            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'counter_bonus')" style="padding: 12px; background: #8b5cf6; color: white; border: none; border-radius: 8px; cursor: pointer;">
-              📊 ${
-                isEn
-                  ? "Propose different commission"
-                  : "Zaproponuj inną prowizję"
-              }
-            </button>
-            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'reject')" style="padding: 12px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer;">
-              ❌ ${t.rejectBtn}
-            </button>
-          `;
-          } else if (worker.negotiationState === "awaiting_salary") {
-            inputDiv.style.display = "block";
-            document.getElementById("businessChatInputField").placeholder = isEn
-              ? "Enter weekly salary..."
-              : "Wpisz tygodniówkę...";
-            document.getElementById("businessChatInputField").value = "";
-            currentBusinessChat.awaitingInput = "salary_offer";
+            // Odśwież wiadomości
+            messagesDiv.innerHTML = worker.chatHistory
+              .map(
+                (msg) => `
+            <div style="margin-bottom: 12px; ${
+              msg.from === "player" ? "text-align: right;" : ""
+            }">
+              <div style="display: inline-block; max-width: 80%; padding: 10px 15px; border-radius: 15px; background: ${
+                msg.from === "player" ? "#3b82f6" : "#333"
+              }; white-space: pre-line;">
+                ${msg.text}
+              </div>
+            </div>
+          `
+              )
+              .join("");
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            // Opcje - zgódź się lub omów szczegóły
+            const currentOffer = worker.offerDailySalary || dailySalary;
+            const currentBonus =
+              worker.offerBonusPercent || worker.bonusPercent;
 
             optionsDiv.innerHTML = `
-            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'back')" style="padding: 10px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer;">
-              ← ${isEn ? "Back to options" : "Wróć do opcji"}
-            </button>
-          `;
-          } else if (worker.negotiationState === "awaiting_bonus") {
-            inputDiv.style.display = "block";
-            document.getElementById("businessChatInputField").placeholder = isEn
-              ? "Enter commission % (e.g. 5)..."
-              : "Wpisz prowizję % (np. 5)...";
-            document.getElementById("businessChatInputField").value = "";
-            currentBusinessChat.awaitingInput = "bonus_offer";
-
-            optionsDiv.innerHTML = `
-            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'back')" style="padding: 10px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer;">
-              ← ${isEn ? "Back to options" : "Wróć do opcji"}
-            </button>
-          `;
-          } else if (worker.negotiationState === "final_offer") {
-            // Pracownik dał ostateczną ofertę
-            optionsDiv.innerHTML = `
-            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'accept_final')" style="padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer;">
+            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'accept_terms')" style="padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
               ✅ ${
-                isEn ? "Accept final offer" : "Akceptuj ostateczną ofertę"
-              } (${worker.expectedSalary}/${isEn ? "wk" : "tyg"} + ${
-              worker.bonusPercent
-            }%)
+                isEn ? "Accept terms" : "Zgódź się na warunki"
+              } (${currentOffer}/${isEn ? "day" : "dzień"} + ${currentBonus}%)
             </button>
-            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'counter_salary')" style="padding: 12px; background: #f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer;">
-              💰 ${isEn ? "Try different salary" : "Spróbuj inną pensję"}
+            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'edit_details')" style="padding: 12px; background: #f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+              📋 ${isEn ? "Discuss details" : "Omów szczegóły"}
             </button>
             <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'reject')" style="padding: 12px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer;">
               ❌ ${t.rejectBtn}
             </button>
           `;
-          } else if (worker.negotiationState === "awaiting_offer") {
-            // Kompatybilność wsteczna
-            inputDiv.style.display = "block";
-            document.getElementById("businessChatInputField").placeholder =
-              t.enterSalaryPrompt;
-            currentBusinessChat.awaitingInput = "salary_offer";
+          } else if (worker.negotiationState === "editing_details") {
+            // Edycja szczegółów oferty
+            const currentOffer = worker.offerDailySalary || dailySalary;
+            const currentBonus =
+              worker.offerBonusPercent || worker.bonusPercent;
+            const currentSigning =
+              worker.offerSigningBonus !== undefined
+                ? worker.offerSigningBonus
+                : worker.signingBonus || 0;
+            const currentType = worker.offerContractType || "fixed";
+            const currentPerf =
+              worker.offerExpectedPerf || worker.expectedPerformance;
+
+            optionsDiv.innerHTML = `
+            <div style="background: #1a1a2e; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+              <h4 style="margin-bottom: 15px; color: #f59e0b;">📋 ${
+                isEn ? "Contract Details" : "Szczegóły Umowy"
+              }</h4>
+              
+              <div style="margin-bottom: 12px;">
+                <label style="color: #888; font-size: 0.85em; display: block; margin-bottom: 3px;">💰 ${
+                  isEn ? "Daily salary" : "Dniówka"
+                } (${isEn ? "expected" : "oczekiwane"}: ${dailySalary})</label>
+                <input type="number" id="offerDailySalary" value="${currentOffer}" min="1" 
+                       style="width: 100%; padding: 10px; background: #333; border: 1px solid #555; border-radius: 5px; color: white; font-size: 1em;">
+              </div>
+              
+              <div style="margin-bottom: 12px;">
+                <label style="color: #888; font-size: 0.85em; display: block; margin-bottom: 3px;">📊 ${
+                  isEn ? "Commission %" : "Prowizja %"
+                } (${isEn ? "expected" : "oczekiwane"}: ${
+              worker.bonusPercent
+            }%)</label>
+                <input type="number" id="offerBonusPercent" value="${currentBonus}" min="0" max="50"
+                       style="width: 100%; padding: 10px; background: #333; border: 1px solid #555; border-radius: 5px; color: white; font-size: 1em;">
+              </div>
+              
+              <div style="margin-bottom: 12px;">
+                <label style="color: #888; font-size: 0.85em; display: block; margin-bottom: 3px;">🎁 ${
+                  isEn ? "Signing bonus" : "Bonus za podpis"
+                } (${isEn ? "expected" : "oczekiwane"}: ${
+              worker.signingBonus || 0
+            })</label>
+                <input type="number" id="offerSigningBonus" value="${currentSigning}" min="0" max="10000"
+                       style="width: 100%; padding: 10px; background: #333; border: 1px solid #555; border-radius: 5px; color: white; font-size: 1em;">
+              </div>
+              
+              <div style="margin-bottom: 12px;">
+                <label style="color: #888; font-size: 0.85em; display: block; margin-bottom: 3px;">📝 ${
+                  isEn ? "Contract type" : "Typ umowy"
+                }</label>
+                <select id="offerContractType" style="width: 100%; padding: 10px; background: #333; border: 1px solid #555; border-radius: 5px; color: white; font-size: 1em;">
+                  <option value="fixed" ${
+                    currentType === "fixed" ? "selected" : ""
+                  }>${
+              isEn ? "Fixed (no reductions)" : "Stała (bez obniżek)"
+            }</option>
+                  <option value="performance" ${
+                    currentType === "performance" ? "selected" : ""
+                  }>${
+              isEn ? "Performance-based" : "Zależna od wyników"
+            }</option>
+                </select>
+              </div>
+              
+              <div style="margin-bottom: 12px;">
+                <label style="color: #888; font-size: 0.85em; display: block; margin-bottom: 3px;">🎯 ${
+                  isEn ? "Expected clients/day" : "Oczekiwani klienci/dzień"
+                }</label>
+                <input type="number" id="offerExpectedPerf" value="${currentPerf}" min="1" max="100"
+                       style="width: 100%; padding: 10px; background: #333; border: 1px solid #555; border-radius: 5px; color: white; font-size: 1em;">
+              </div>
+            </div>
+            
+            <button onclick="sendContractOffer(${businessIndex}, '${workerId}')" style="padding: 15px; background: linear-gradient(145deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1.1em;">
+              📨 ${isEn ? "Send offer" : "Wyślij ofertę"}
+            </button>
+            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'back')" style="padding: 10px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; width: 100%;">
+              ← ${isEn ? "Back" : "Wróć"}
+            </button>
+          `;
+          } else if (worker.negotiationState === "worker_accepted") {
+            // Pracownik zaakceptował
+            const finalDaily = worker.agreedDailySalary;
+            const finalBonus = worker.agreedBonusPercent;
+            const finalSigning = worker.agreedSigningBonus || 0;
+
+            optionsDiv.innerHTML = `
+            <div style="background: rgba(16,185,129,0.1); border: 1px solid #10b981; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+              <div style="color: #10b981; font-weight: bold; margin-bottom: 10px;">✅ ${
+                isEn ? "Worker accepted!" : "Pracownik zaakceptował!"
+              }</div>
+              <div style="font-size: 0.9em; color: #ccc;">
+                💰 ${finalDaily} ${getCurrency()}/${isEn ? "day" : "dzień"}<br>
+                📊 ${finalBonus}% ${isEn ? "commission" : "prowizji"}<br>
+                🎁 ${finalSigning} ${getCurrency()} ${
+              isEn ? "signing bonus" : "bonus za podpis"
+            }
+              </div>
+            </div>
+            
+            <button onclick="signContract(${businessIndex}, '${workerId}')" style="padding: 15px; background: linear-gradient(145deg, #10b981, #059669); color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1.1em;">
+              ✍️ ${isEn ? "Sign contract" : "Podpisz umowę"}
+            </button>
+            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'edit_details')" style="padding: 10px; background: #f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; width: 100%;">
+              📋 ${isEn ? "Change offer" : "Zmień ofertę"}
+            </button>
+          `;
+          } else if (worker.negotiationState === "worker_counter") {
+            // Kontrpropozycja
+            optionsDiv.innerHTML = `
+            <div style="background: rgba(245,158,11,0.1); border: 1px solid #f59e0b; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+              <div style="color: #f59e0b; font-weight: bold; margin-bottom: 10px;">💬 ${
+                isEn ? "Counter-offer:" : "Kontrpropozycja:"
+              }</div>
+              <div style="font-size: 0.9em; color: #ccc;">
+                💰 ${worker.counterDailySalary} ${getCurrency()}/${
+              isEn ? "day" : "dzień"
+            }<br>
+                📊 ${worker.counterBonusPercent}% ${
+              isEn ? "commission" : "prowizji"
+            }
+              </div>
+            </div>
+            
+            <button onclick="acceptCounterOffer(${businessIndex}, '${workerId}')" style="padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+              ✅ ${isEn ? "Accept counter-offer" : "Akceptuj kontrpropozycję"}
+            </button>
+            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'edit_details')" style="padding: 10px; background: #f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; width: 100%;">
+              📋 ${isEn ? "Make new offer" : "Złóż nową ofertę"}
+            </button>
+            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'reject')" style="padding: 10px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">
+              ❌ ${t.rejectBtn}
+            </button>
+          `;
+          } else if (worker.negotiationState === "contract_setup") {
+            // Stary stan - przekieruj do nowego
+            worker.negotiationState = "editing_details";
+            saveBusinesses(businesses);
+            continueWorkerNegotiation(businessIndex, workerId);
+            return;
           }
+        }
+
+        // Finalizacja kontraktu
+        function finalizeContract(businessIndex, workerId) {
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
+          const worker = business.workers.find((w) => w.id === workerId);
+          if (!worker) return;
+          const isEn = currentLang === "en";
+
+          const signingBonus =
+            parseInt(document.getElementById("contractSigningBonus")?.value) ||
+            0;
+          const contractType =
+            document.getElementById("contractType")?.value || "fixed";
+          const expectedPerf =
+            parseInt(document.getElementById("contractExpectedPerf")?.value) ||
+            worker.expectedPerformance;
+
+          const dailySalary =
+            worker.agreedDailySalary ||
+            worker.expectedDailySalary ||
+            Math.floor(worker.expectedSalary / 7);
+          const totalCost = signingBonus;
+
+          if (money < totalCost) {
+            showToast(
+              isEn
+                ? "❌ Not enough money for signing bonus!"
+                : "❌ Nie stać Cię na bonus za podpis!"
+            );
+            return;
+          }
+
+          // Pobierz bonus za podpis
+          if (signingBonus > 0) {
+            money -= signingBonus;
+          }
+
+          // Ustaw kontrakt
+          worker.hired = true;
+          worker.currentDailySalary = dailySalary;
+          worker.currentSalary = dailySalary * 7;
+          worker.agreedBonus = worker.agreedBonus || worker.bonusPercent;
+          worker.bonusPercent = worker.agreedBonus;
+          worker.contractType = contractType;
+          worker.canReduceSalary = contractType === "performance";
+          worker.expectedPerformance = expectedPerf;
+          worker.signingBonusPaid = signingBonus;
+          worker.negotiationState = "accepted";
+          worker.hiredAt = Date.now();
+
+          worker.chatHistory.push({
+            from: "worker",
+            text: isEn
+              ? `Great! I'm happy to join the team. Let's get to work!`
+              : `Świetnie! Cieszę się, że dołączam do zespołu. Do pracy!`,
+          });
+
+          recalculateBusinessExpenses(businessIndex);
+          saveBusinesses(businesses);
+          saveState();
+          updateAllDisplays();
+
+          showToast(`✅ ${isEn ? "Hired" : "Zatrudniono"} ${worker.name}!`);
+
+          setTimeout(() => {
+            closeModal("businessChat");
+            openModal("businessDetail");
+            renderBusinessDetail(businessIndex);
+          }, 1000);
         }
 
         function respondToWorker(businessIndex, workerId, response) {
@@ -14233,50 +14558,37 @@
           const t = translations[currentLang] || translations.en;
           const isEn = currentLang === "en";
 
-          if (response === "accept" || response === "accept_final") {
+          if (response === "accept_terms") {
+            // Akceptuj warunki pracownika i przejdź do podpisu
+            const dailySalary =
+              worker.expectedDailySalary ||
+              Math.floor(worker.expectedSalary / 7);
+            worker.agreedDailySalary = dailySalary;
+            worker.agreedBonusPercent = worker.bonusPercent;
+            worker.agreedSigningBonus = worker.signingBonus || 0;
+            worker.agreedContractType = "fixed";
+            worker.agreedExpectedPerf = worker.expectedPerformance;
+
             worker.chatHistory.push({
               from: "player",
-              text: t.acceptMsg
-                .replace("{salary}", worker.expectedSalary)
-                .replace("{currency}", getCurrency())
-                .replace("{bonus}", worker.bonusPercent),
+              text: isEn ? "I accept your terms." : "Akceptuję Twoje warunki.",
             });
             worker.chatHistory.push({
               from: "worker",
-              text: t.workerAcceptMsg,
+              text: isEn
+                ? "Excellent! Let's sign the contract."
+                : "Doskonale! Podpiszmy umowę.",
             });
-            worker.chatHistory.push({ from: "player", text: t.startNowMsg });
-            worker.chatHistory.push({
-              from: "worker",
-              text: t.workerThanksMsg,
-            });
-
-            worker.hired = true;
-            worker.currentSalary = worker.expectedSalary;
-            worker.negotiationState = "accepted";
-
-            recalculateBusinessExpenses(businessIndex);
+            worker.negotiationState = "worker_accepted";
             saveBusinesses(businesses);
-            saveState();
-
-            showToast(`✅ ${t.hired} ${worker.name}!`);
-          } else if (response === "counter_salary") {
+          } else if (response === "edit_details") {
             worker.chatHistory.push({
               from: "player",
               text: isEn
-                ? "I'd like to propose a different salary..."
-                : "Chciałbym zaproponować inną pensję...",
+                ? "Let's discuss the details..."
+                : "Omówmy szczegóły...",
             });
-            worker.negotiationState = "awaiting_salary";
-            saveBusinesses(businesses);
-          } else if (response === "counter_bonus") {
-            worker.chatHistory.push({
-              from: "player",
-              text: isEn
-                ? "Let's discuss the commission rate..."
-                : "Porozmawiajmy o wysokości prowizji...",
-            });
-            worker.negotiationState = "awaiting_bonus";
+            worker.negotiationState = "editing_details";
             saveBusinesses(businesses);
           } else if (response === "back") {
             worker.negotiationState = "initial";
@@ -14289,7 +14601,6 @@
             });
             worker.negotiationState = "rejected";
 
-            // Usuń kandydata
             business.workers = business.workers.filter(
               (w) => w.id !== workerId
             );
@@ -14303,6 +14614,190 @@
           }
 
           continueWorkerNegotiation(businessIndex, workerId);
+        }
+
+        // Wyślij ofertę kontraktu
+        function sendContractOffer(businessIndex, workerId) {
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
+          const worker = business.workers.find((w) => w.id === workerId);
+          if (!worker) return;
+          const isEn = currentLang === "en";
+
+          const offerDaily =
+            parseInt(document.getElementById("offerDailySalary")?.value) ||
+            worker.expectedDailySalary;
+          const offerBonus =
+            parseInt(document.getElementById("offerBonusPercent")?.value) ||
+            worker.bonusPercent;
+          const offerSigning =
+            parseInt(document.getElementById("offerSigningBonus")?.value) || 0;
+          const offerType =
+            document.getElementById("offerContractType")?.value || "fixed";
+          const offerPerf =
+            parseInt(document.getElementById("offerExpectedPerf")?.value) ||
+            worker.expectedPerformance;
+
+          worker.offerDailySalary = offerDaily;
+          worker.offerBonusPercent = offerBonus;
+          worker.offerSigningBonus = offerSigning;
+          worker.offerContractType = offerType;
+          worker.offerExpectedPerf = offerPerf;
+
+          worker.chatHistory.push({
+            from: "player",
+            text: isEn
+              ? `My offer: ${offerDaily} ${getCurrency()}/day + ${offerBonus}% commission. Signing bonus: ${offerSigning} ${getCurrency()}. Contract: ${
+                  offerType === "fixed" ? "fixed" : "performance-based"
+                }.`
+              : `Moja oferta: ${offerDaily} ${getCurrency()}/dzień + ${offerBonus}% prowizji. Bonus za podpis: ${offerSigning} ${getCurrency()}. Umowa: ${
+                  offerType === "fixed" ? "stała" : "zależna od wyników"
+                }.`,
+          });
+
+          const expectedDaily =
+            worker.expectedDailySalary || Math.floor(worker.expectedSalary / 7);
+          const expectedBonus = worker.bonusPercent;
+          const expectedSigning = worker.signingBonus || 0;
+
+          const offerValue = offerDaily + offerBonus * 10 + offerSigning * 0.1;
+          const expectedValue =
+            expectedDaily + expectedBonus * 10 + expectedSigning * 0.1;
+          const ratio = offerValue / expectedValue;
+
+          if (ratio >= 1.0) {
+            worker.chatHistory.push({
+              from: "worker",
+              text: isEn
+                ? "This is a great offer! I accept."
+                : "To świetna oferta! Akceptuję.",
+            });
+            worker.agreedDailySalary = offerDaily;
+            worker.agreedBonusPercent = offerBonus;
+            worker.agreedSigningBonus = offerSigning;
+            worker.agreedContractType = offerType;
+            worker.agreedExpectedPerf = offerPerf;
+            worker.negotiationState = "worker_accepted";
+          } else if (ratio >= 0.85) {
+            worker.chatHistory.push({
+              from: "worker",
+              text: isEn
+                ? "It's less than I expected, but I can work with that."
+                : "To mniej niż oczekiwałem, ale mogę się zgodzić.",
+            });
+            worker.agreedDailySalary = offerDaily;
+            worker.agreedBonusPercent = offerBonus;
+            worker.agreedSigningBonus = offerSigning;
+            worker.agreedContractType = offerType;
+            worker.agreedExpectedPerf = offerPerf;
+            worker.negotiationState = "worker_accepted";
+          } else if (ratio >= 0.7) {
+            const counterDaily = Math.floor((offerDaily + expectedDaily) / 2);
+            const counterBonus = Math.floor((offerBonus + expectedBonus) / 2);
+            worker.chatHistory.push({
+              from: "worker",
+              text: isEn
+                ? `That's too low. How about ${counterDaily} ${getCurrency()}/day and ${counterBonus}% commission?`
+                : `To za mało. Co powiesz na ${counterDaily} ${getCurrency()}/dzień i ${counterBonus}% prowizji?`,
+            });
+            worker.counterDailySalary = counterDaily;
+            worker.counterBonusPercent = counterBonus;
+            worker.negotiationState = "worker_counter";
+          } else {
+            worker.chatHistory.push({
+              from: "worker",
+              text: isEn
+                ? "Sorry, that offer is too low for me."
+                : "Przykro mi, ta oferta jest dla mnie za niska.",
+            });
+            worker.negotiationState = "initial";
+          }
+
+          saveBusinesses(businesses);
+          continueWorkerNegotiation(businessIndex, workerId);
+        }
+
+        function acceptCounterOffer(businessIndex, workerId) {
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
+          const worker = business.workers.find((w) => w.id === workerId);
+          if (!worker) return;
+          const isEn = currentLang === "en";
+
+          worker.chatHistory.push({
+            from: "player",
+            text: isEn
+              ? "Alright, I accept your counter-offer."
+              : "Dobrze, akceptuję Twoją propozycję.",
+          });
+          worker.chatHistory.push({
+            from: "worker",
+            text: isEn
+              ? "Great! Let's finalize the contract."
+              : "Świetnie! Sfinalizujmy umowę.",
+          });
+
+          worker.agreedDailySalary = worker.counterDailySalary;
+          worker.agreedBonusPercent = worker.counterBonusPercent;
+          worker.agreedSigningBonus = worker.offerSigningBonus || 0;
+          worker.agreedContractType = worker.offerContractType || "fixed";
+          worker.agreedExpectedPerf =
+            worker.offerExpectedPerf || worker.expectedPerformance;
+          worker.negotiationState = "worker_accepted";
+
+          saveBusinesses(businesses);
+          continueWorkerNegotiation(businessIndex, workerId);
+        }
+
+        function signContract(businessIndex, workerId) {
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
+          const worker = business.workers.find((w) => w.id === workerId);
+          if (!worker) return;
+          const isEn = currentLang === "en";
+
+          const signingBonus = worker.agreedSigningBonus || 0;
+          if (money < signingBonus) {
+            showToast(
+              isEn
+                ? "❌ Not enough money for signing bonus!"
+                : "❌ Nie stać Cię na bonus za podpis!"
+            );
+            return;
+          }
+
+          if (signingBonus > 0) money -= signingBonus;
+
+          worker.hired = true;
+          worker.currentDailySalary = worker.agreedDailySalary;
+          worker.currentSalary = worker.agreedDailySalary * 7;
+          worker.bonusPercent = worker.agreedBonusPercent;
+          worker.contractType = worker.agreedContractType;
+          worker.canReduceSalary = worker.agreedContractType === "performance";
+          worker.expectedPerformance = worker.agreedExpectedPerf;
+          worker.signingBonusPaid = signingBonus;
+          worker.negotiationState = "accepted";
+          worker.hiredAt = Date.now();
+
+          worker.chatHistory.push({
+            from: "worker",
+            text: isEn
+              ? "Contract signed! I'm ready to work."
+              : "Umowa podpisana! Jestem gotowy do pracy.",
+          });
+
+          recalculateBusinessExpenses(businessIndex);
+          saveBusinesses(businesses);
+          saveState();
+          updateAllDisplays();
+
+          showToast(`✅ ${isEn ? "Hired" : "Zatrudniono"} ${worker.name}!`);
+
+          setTimeout(() => {
+            closeModal("businessChat");
+            openModal("businessDetail");
+            renderBusinessDetail(businessIndex);
+          }, 1000);
         }
 
         function sendBusinessChatInput() {
@@ -14327,6 +14822,12 @@
               return;
             }
 
+            const expectedDaily =
+              worker.expectedDailySalary ||
+              Math.floor(worker.expectedSalary / 7);
+            const minDaily =
+              worker.minDailySalary || Math.floor(worker.minSalary / 7);
+
             worker.chatHistory.push({
               from: "player",
               text:
@@ -14334,56 +14835,63 @@
                 offer +
                 " " +
                 getCurrency() +
-                (isEn ? " weekly." : " tygodniowo."),
+                (isEn ? " per day." : " dziennie."),
             });
 
             // Reakcja pracownika
-            if (offer >= worker.expectedSalary) {
+            if (offer >= expectedDaily) {
               worker.chatHistory.push({
                 from: "worker",
-                text: t.workerGreatOffer,
+                text: isEn ? "That's a great offer!" : "To świetna oferta!",
               });
-              worker.expectedSalary = offer;
-              worker.hired = true;
-              worker.currentSalary = offer;
-              worker.negotiationState = "accepted";
-              recalculateBusinessExpenses(businessId);
+              worker.agreedDailySalary = offer;
+              worker.expectedDailySalary = offer;
+              worker.expectedSalary = offer * 7;
+              worker.negotiationState = "contract_setup";
+              worker.agreedBonus = worker.bonusPercent;
               saveBusinesses(businesses);
-              saveState();
-              showToast(`✅ ${t.hired} ${worker.name}!`);
-            } else if (offer >= worker.minSalary) {
-              const diff = worker.expectedSalary - offer;
-              if (diff < 50) {
+            } else if (offer >= minDaily) {
+              const diff = expectedDaily - offer;
+              if (diff < 20) {
                 worker.chatHistory.push({
                   from: "worker",
-                  text: t.workerAcceptLower,
+                  text: isEn
+                    ? "Alright, I can work with that."
+                    : "Dobrze, mogę się na to zgodzić.",
                 });
-                worker.expectedSalary = offer;
-                worker.hired = true;
-                worker.currentSalary = offer;
-                worker.negotiationState = "accepted";
-                recalculateBusinessExpenses(businessId);
+                worker.agreedDailySalary = offer;
+                worker.expectedDailySalary = offer;
+                worker.expectedSalary = offer * 7;
+                worker.negotiationState = "contract_setup";
+                worker.agreedBonus = worker.bonusPercent;
                 saveBusinesses(businesses);
-                saveState();
-                showToast(`✅ ${t.hired} ${worker.name}!`);
               } else {
-                const counter = Math.floor((offer + worker.expectedSalary) / 2);
+                const counter = Math.floor((offer + expectedDaily) / 2);
                 worker.chatHistory.push({
                   from: "worker",
-                  text: t.workerCounterOffer
-                    .replace("{counter}", counter)
-                    .replace("{currency}", getCurrency()),
+                  text:
+                    (isEn ? "How about " : "Co powiesz na ") +
+                    counter +
+                    " " +
+                    getCurrency() +
+                    (isEn ? " per day?" : " dziennie?"),
                 });
-                worker.expectedSalary = counter;
+                worker.expectedDailySalary = counter;
+                worker.expectedSalary = counter * 7;
                 worker.negotiationState = "initial";
                 saveBusinesses(businesses);
               }
             } else {
               worker.chatHistory.push({
                 from: "worker",
-                text: t.workerTooLow
-                  .replace("{min}", worker.minSalary)
-                  .replace("{currency}", getCurrency()),
+                text:
+                  (isEn
+                    ? "That's too low. I need at least "
+                    : "To za mało. Potrzebuję minimum ") +
+                  minDaily +
+                  " " +
+                  getCurrency() +
+                  (isEn ? " per day." : " dziennie."),
               });
               worker.negotiationState = "initial";
               saveBusinesses(businesses);
@@ -14418,14 +14926,16 @@
                 from: "worker",
                 text: isEn ? "That works for me!" : "To mi odpowiada!",
               });
+              worker.agreedBonus = bonusOffer;
               worker.bonusPercent = bonusOffer;
               worker.negotiationState = "initial";
               saveBusinesses(businesses);
             } else if (bonusOffer >= expectedBonus * 0.5) {
-              // Akceptuje jeśli minimum połowa oczekiwanej
-              const newSalary = Math.floor(
-                worker.expectedSalary *
-                  (1 + (expectedBonus - bonusOffer) * 0.02)
+              const dailySalary =
+                worker.expectedDailySalary ||
+                Math.floor(worker.expectedSalary / 7);
+              const newDaily = Math.floor(
+                dailySalary * (1 + (expectedBonus - bonusOffer) * 0.02)
               );
               worker.chatHistory.push({
                 from: "worker",
@@ -14433,13 +14943,15 @@
                   (isEn ? "I can accept " : "Mogę zaakceptować ") +
                   bonusOffer +
                   (isEn ? "%, but I'd need " : "%, ale potrzebowałbym ") +
-                  newSalary +
+                  newDaily +
                   " " +
                   getCurrency() +
-                  (isEn ? " base salary then." : " podstawy wtedy."),
+                  (isEn ? " per day then." : " dziennie wtedy."),
               });
+              worker.agreedBonus = bonusOffer;
               worker.bonusPercent = bonusOffer;
-              worker.expectedSalary = newSalary;
+              worker.expectedDailySalary = newDaily;
+              worker.expectedSalary = newDaily * 7;
               worker.negotiationState = "initial";
               saveBusinesses(businesses);
             } else {
