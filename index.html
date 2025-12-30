@@ -9095,6 +9095,56 @@
           },
         ];
 
+        // Wymagane doświadczenie na każdy poziom gwiazdek
+        const JOBS_REQUIRED_PER_STAR = 3; // 3 prace na poprzednim poziomie = odblokowanie następnego
+
+        function getWorkExperience() {
+          const save = getCurrentSave();
+          if (!save.data.workExperience) {
+            save.data.workExperience = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+          }
+          return save.data.workExperience;
+        }
+
+        function saveWorkExperience(exp) {
+          const save = getCurrentSave();
+          save.data.workExperience = exp;
+          saveState();
+        }
+
+        function getUnlockedStars() {
+          const exp = getWorkExperience();
+          let unlocked = 1; // 1 gwiazdka zawsze odblokowana
+
+          if (exp[1] >= JOBS_REQUIRED_PER_STAR) unlocked = 2;
+          if (
+            exp[1] >= JOBS_REQUIRED_PER_STAR &&
+            exp[2] >= JOBS_REQUIRED_PER_STAR
+          )
+            unlocked = 3;
+          if (
+            exp[1] >= JOBS_REQUIRED_PER_STAR &&
+            exp[2] >= JOBS_REQUIRED_PER_STAR &&
+            exp[3] >= JOBS_REQUIRED_PER_STAR
+          )
+            unlocked = 4;
+          if (
+            exp[1] >= JOBS_REQUIRED_PER_STAR &&
+            exp[2] >= JOBS_REQUIRED_PER_STAR &&
+            exp[3] >= JOBS_REQUIRED_PER_STAR &&
+            exp[4] >= JOBS_REQUIRED_PER_STAR
+          )
+            unlocked = 5;
+
+          return unlocked;
+        }
+
+        function addWorkExperience(difficulty) {
+          const exp = getWorkExperience();
+          exp[difficulty] = (exp[difficulty] || 0) + 1;
+          saveWorkExperience(exp);
+        }
+
         let workInterval = null;
         let sleepInterval = null;
         let coinInterval = null;
@@ -9107,30 +9157,75 @@
         function renderJobsList() {
           const list = document.getElementById("jobsList");
           const t = translations[currentLang] || translations.en;
+          const isEn = currentLang === "en";
+          const unlockedStars = getUnlockedStars();
+          const exp = getWorkExperience();
 
           list.innerHTML = jobs
             .map((job) => {
               const difficultyStars = "⭐".repeat(job.difficulty);
               const jobName = currentLang === "pl" ? job.name : job.nameEn;
+              const isLocked = job.difficulty > unlockedStars;
+
+              // Oblicz ile jeszcze prac potrzeba
+              let lockInfo = "";
+              if (isLocked) {
+                const prevLevel = job.difficulty - 1;
+                const done = exp[prevLevel] || 0;
+                const needed = JOBS_REQUIRED_PER_STAR - done;
+                lockInfo = isEn
+                  ? `🔒 Complete ${needed} more ${prevLevel}⭐ jobs to unlock`
+                  : `🔒 Wykonaj jeszcze ${needed} prac ${prevLevel}⭐ aby odblokować`;
+              }
+
+              // Pokaż postęp na aktualnym poziomie
+              const currentExp = exp[job.difficulty] || 0;
+              const progressInfo =
+                !isLocked && job.difficulty < 5
+                  ? `<div style="font-size:0.7em;color:#666;margin-top:3px;">${
+                      isEn ? "Progress" : "Postęp"
+                    }: ${currentExp}/${JOBS_REQUIRED_PER_STAR}</div>`
+                  : "";
+
+              if (isLocked) {
+                return `
+                <div style="padding:15px;margin-bottom:10px;background:rgba(0,0,0,0.5);border:2px solid #444;border-radius:12px;opacity:0.5;cursor:not-allowed;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                      <div style="font-size:1.1em;font-weight:bold;color:#666;">🔒 ${jobName}</div>
+                      <div style="font-size:0.85em;color:#555;">${difficultyStars}</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div style="color:#666;font-weight:bold;">${job.basePay.toLocaleString()} ${getCurrency()}</div>
+                    </div>
+                  </div>
+                  <div style="font-size:0.8em;color:#f59e0b;margin-top:8px;text-align:center;">${lockInfo}</div>
+                </div>
+              `;
+              }
 
               return `
-                    <div onclick="startWork('${
-                      job.id
-                    }')" style="padding:15px;margin-bottom:10px;background:rgba(0,0,0,0.3);border:2px solid #333;border-radius:12px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='#333'">
-                        <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <div>
-                                <div style="font-size:1.1em;font-weight:bold;">${jobName}</div>
-                                <div style="font-size:0.85em;color:#888;">${difficultyStars}</div>
-                            </div>
-                            <div style="text-align:right;">
-                                <div style="color:#4ade80;font-weight:bold;">${job.basePay.toLocaleString()} ${getCurrency()}</div>
-                                <div style="font-size:0.75em;color:#888;">+ ${
-                                  t.bonuses || "bonusy"
-                                }</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+              <div onclick="startWork('${
+                job.id
+              }')" style="padding:15px;margin-bottom:10px;background:rgba(0,0,0,0.3);border:2px solid #333;border-radius:12px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='#333'">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div>
+                    <div style="font-size:1.1em;font-weight:bold;">${jobName}</div>
+                    <div style="font-size:0.85em;color:#888;">${difficultyStars}</div>
+                    ${progressInfo}
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="color:#4ade80;font-weight:bold;">${job.basePay.toLocaleString()} ${getCurrency()}</div>
+                    <div style="font-size:0.75em;color:#888;">+ ${
+                      t.bonuses || "bonusy"
+                    }</div>
+                    <div style="font-size:0.7em;color:#f59e0b;">💰 x${
+                      job.difficulty
+                    } ${isEn ? "bonus" : "bonus"}</div>
+                  </div>
+                </div>
+              </div>
+            `;
             })
             .join("");
         }
@@ -9138,6 +9233,20 @@
         function startWork(jobId) {
           currentJob = jobs.find((j) => j.id === jobId);
           if (!currentJob) return;
+
+          // Sprawdź czy praca jest odblokowana
+          const unlockedStars = getUnlockedStars();
+          if (currentJob.difficulty > unlockedStars) {
+            const isEn = currentLang === "en";
+            showToast(
+              `🔒 ${
+                isEn
+                  ? "This job is locked! Complete more lower-level jobs first."
+                  : "Ta praca jest zablokowana! Wykonaj więcej prac niższego poziomu."
+              }`
+            );
+            return;
+          }
 
           const t = translations[currentLang] || translations.en;
           workTimeLeft = 120;
@@ -9340,10 +9449,15 @@
           stopWakeUp(); // Zatrzymaj otwieranie oczu
 
           const t = translations[currentLang] || translations.en;
+          const isEn = currentLang === "en";
           const basePay = currentJob.basePay;
 
-          // Bonus za klikanie monet
-          const totalEarned = basePay + workBonus;
+          // Bonus za gwiazdki - im więcej gwiazdek tym większy mnożnik bonusu
+          const starMultiplier = currentJob.difficulty;
+          const starBonus = Math.floor(workBonus * (starMultiplier - 1)); // dodatkowy bonus za gwiazdki
+
+          // Bonus za klikanie monet + bonus za gwiazdki
+          const totalEarned = basePay + workBonus + starBonus;
 
           // Im więcej śpisz (sleepLevel 0-45), tym więcej TRACISZ (0-90%)
           const sleepPenalty = (sleepLevel / 45) * 0.9;
@@ -9351,6 +9465,10 @@
           const finalPay = totalEarned - moneyLost;
 
           money += finalPay;
+
+          // Dodaj doświadczenie za ukończoną pracę
+          addWorkExperience(currentJob.difficulty);
+
           saveState();
           updateAllDisplays();
 
@@ -9365,6 +9483,11 @@
           msg += `💰 ${
             t.coinsCollected || "Zebrane monety"
           }: +${workBonus.toLocaleString()} ${getCurrency()}\n`;
+          if (starBonus > 0) {
+            msg += `⭐ ${
+              isEn ? "Star bonus" : "Bonus za gwiazdki"
+            } (x${starMultiplier}): +${starBonus.toLocaleString()} ${getCurrency()}\n`;
+          }
           if (moneyLost > 0) {
             msg += `😴 ${
               t.sleepPenalty || "Strata za spanie"
@@ -9373,6 +9496,23 @@
           msg += `\n${
             t.total || "Razem"
           }: ${finalPay.toLocaleString()} ${getCurrency()}`;
+
+          // Info o postępie
+          const exp = getWorkExperience();
+          const currentExp = exp[currentJob.difficulty] || 0;
+          if (currentJob.difficulty < 5) {
+            msg += `\n\n📊 ${isEn ? "Progress" : "Postęp"} ${
+              currentJob.difficulty
+            }⭐: ${currentExp}/${JOBS_REQUIRED_PER_STAR}`;
+            if (
+              currentExp >= JOBS_REQUIRED_PER_STAR &&
+              currentJob.difficulty < 5
+            ) {
+              msg += `\n🎉 ${
+                isEn ? "Next level unlocked!" : "Następny poziom odblokowany!"
+              }`;
+            }
+          }
 
           alert(msg);
           currentJob = null;
