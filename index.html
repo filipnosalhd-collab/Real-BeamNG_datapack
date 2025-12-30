@@ -4739,29 +4739,38 @@
         }
 
         function createNewSaveData(name) {
+          const defaultModeData = {
+            money: 1500,
+            garage: [],
+            spent: 0,
+            debt: 0,
+            debtDeadline: null,
+            totalTaxPaid: 0,
+            health: 100,
+            food: 1000,
+            water: 1000,
+            backpack: [],
+            activeInsurances: [],
+            businesses: [],
+            credits: [],
+            workExperience: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+            vouchersToSend: [],
+            receivedVouchers: [],
+          };
+
           return {
             id: "save_" + Date.now(),
             name: name,
             createdAt: Date.now(),
             data: {
-              money: 1500,
               limit: 10000,
-              spent: 0,
-              debt: 0,
-              debtDeadline: null,
-              totalTaxPaid: 0,
               autoPay: false,
               lastTaxTime: Date.now(),
-              garage: [],
-              health: 100,
-              food: 1000,
-              water: 1000,
-              backpack: [],
               lastHungerTime: Date.now(),
-              insurances: [],
-              vouchersToSend: [],
-              receivedVouchers: [],
             },
+            // Osobne dane dla każdego trybu
+            beamngData: { ...defaultModeData },
+            realLifeData: { ...defaultModeData },
           };
         }
 
@@ -4859,9 +4868,10 @@
             activeInsurances: [...activeInsurances],
           };
 
-          // Zachowaj też vouchery (te są wspólne)
-          if (!save.data.vouchersToSend) save.data.vouchersToSend = [];
-          if (!save.data.receivedVouchers) save.data.receivedVouchers = [];
+          // Zachowaj też vouchery - osobne dla każdego trybu
+          if (!save[modeKey].vouchersToSend) save[modeKey].vouchersToSend = [];
+          if (!save[modeKey].receivedVouchers)
+            save[modeKey].receivedVouchers = [];
 
           localStorage.setItem("beamng_saves", JSON.stringify(saves));
         }
@@ -9100,15 +9110,21 @@
 
         function getWorkExperience() {
           const save = getCurrentSave();
-          if (!save.data.workExperience) {
-            save.data.workExperience = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+          const modeKey =
+            gameMode === "reallife" ? "realLifeData" : "beamngData";
+          if (!save[modeKey]) save[modeKey] = {};
+          if (!save[modeKey].workExperience) {
+            save[modeKey].workExperience = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
           }
-          return save.data.workExperience;
+          return save[modeKey].workExperience;
         }
 
         function saveWorkExperience(exp) {
           const save = getCurrentSave();
-          save.data.workExperience = exp;
+          const modeKey =
+            gameMode === "reallife" ? "realLifeData" : "beamngData";
+          if (!save[modeKey]) save[modeKey] = {};
+          save[modeKey].workExperience = exp;
           saveState();
         }
 
@@ -13267,13 +13283,19 @@
 
         function getBusinesses() {
           const save = getCurrentSave();
-          if (!save.data.businesses) save.data.businesses = [];
-          return save.data.businesses;
+          const modeKey =
+            gameMode === "reallife" ? "realLifeData" : "beamngData";
+          if (!save[modeKey]) save[modeKey] = {};
+          if (!save[modeKey].businesses) save[modeKey].businesses = [];
+          return save[modeKey].businesses;
         }
 
         function saveBusinesses(businesses) {
           const save = getCurrentSave();
-          save.data.businesses = businesses;
+          const modeKey =
+            gameMode === "reallife" ? "realLifeData" : "beamngData";
+          if (!save[modeKey]) save[modeKey] = {};
+          save[modeKey].businesses = businesses;
           saveState();
         }
 
@@ -14690,13 +14712,19 @@
 
         function getCredits() {
           const save = getCurrentSave();
-          if (!save.data.credits) save.data.credits = [];
-          return save.data.credits;
+          const modeKey =
+            gameMode === "reallife" ? "realLifeData" : "beamngData";
+          if (!save[modeKey]) save[modeKey] = {};
+          if (!save[modeKey].credits) save[modeKey].credits = [];
+          return save[modeKey].credits;
         }
 
         function saveCredits(credits) {
           const save = getCurrentSave();
-          save.data.credits = credits;
+          const modeKey =
+            gameMode === "reallife" ? "realLifeData" : "beamngData";
+          if (!save[modeKey]) save[modeKey] = {};
+          save[modeKey].credits = credits;
           saveState();
         }
 
