@@ -7837,21 +7837,21 @@
         }
 
         async function checkNotifications() {
-          if (!playerName) return;
-          const notifs = getMyNotifications();
-          unreadNotifications = notifs.filter((n) => !n.read).length;
+          // Tylko worker notifications - online wyłączone
           updateNotificationBadge();
         }
 
         function updateNotificationBadge() {
           const badge = document.getElementById("notificationBadge");
           if (badge) {
-            // Połącz online i worker notifications
-            const workerNotifs = getWorkerNotifications
-              ? getWorkerNotifications()
-              : [];
-            const workerUnread = workerNotifs.filter((n) => !n.read).length;
-            const total = unreadNotifications + workerUnread;
+            // Tylko worker notifications
+            let workerNotifs = [];
+            try {
+              workerNotifs = getWorkerNotifications() || [];
+            } catch (e) {
+              workerNotifs = [];
+            }
+            const total = workerNotifs.filter((n) => !n.read).length;
 
             badge.textContent = total > 99 ? "99+" : total;
             badge.style.display = total > 0 ? "flex" : "none";
@@ -18254,6 +18254,7 @@
             },
             new_candidate: { icon: "📋", color: "#3b82f6", action: "business" },
             day_end: { icon: "📊", color: "#4ade80", action: "business" },
+            test_welcome: { icon: "🎉", color: "#8b5cf6", action: "business" },
           };
 
           container.innerHTML = sorted
@@ -18679,7 +18680,28 @@
         // Sprawdź przy starcie
         setTimeout(checkWorkerMessages, 10000);
         // Aktualizuj badge przy starcie
-        setTimeout(updateWorkerNotificationBadge, 1000);
+        setTimeout(() => {
+          updateWorkerNotificationBadge();
+
+          // TEST: Dodaj testowe powiadomienie jeśli są firmy
+          const businesses = getBusinesses();
+          if (businesses && businesses.length > 0) {
+            const notifs = getWorkerNotifications();
+            // Dodaj testowe tylko raz (sprawdź czy nie ma już testowego)
+            if (!notifs.some((n) => n.type === "test_welcome")) {
+              const isEn = currentLang === "en";
+              addWorkerNotification(
+                0,
+                null,
+                "test_welcome",
+                isEn
+                  ? "🎉 Notification system working! Click to see your business."
+                  : "🎉 System powiadomień działa! Kliknij aby zobaczyć firmę.",
+                { workerName: isEn ? "System" : "System" }
+              );
+            }
+          }
+        }, 2000);
 
         // ========== NOWY SYSTEM - KLIENCI W CZASIE RZECZYWISTYM ==========
 
