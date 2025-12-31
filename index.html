@@ -4767,6 +4767,10 @@
             workExperience: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
             vouchersToSend: [],
             receivedVouchers: [],
+            // Podatki od pracy
+            todayWorkCount: 0,
+            lastWorkDate: null,
+            pendingTaxReport: null,
           };
 
           return {
@@ -4932,6 +4936,10 @@
             workExperience: existingWorkExp,
             vouchersToSend: existingVouchersToSend,
             receivedVouchers: existingReceivedVouchers,
+            // Podatki
+            todayWorkCount: save[modeKey]?.todayWorkCount || 0,
+            lastWorkDate: save[modeKey]?.lastWorkDate || null,
+            pendingTaxReport: save[modeKey]?.pendingTaxReport || null,
           };
 
           localStorage.setItem("beamng_saves", JSON.stringify(saves));
@@ -9243,6 +9251,245 @@
           saveWorkExperience(exp);
         }
 
+        // ==================== SYSTEM PODATKÓW OD PRACY ====================
+
+        function getTodayDateString() {
+          const now = new Date();
+          return `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+        }
+
+        function getWorkTaxData() {
+          const save = getCurrentSave();
+          if (!save)
+            return {
+              todayWorkCount: 0,
+              lastWorkDate: null,
+              totalEarnings: 0,
+              pendingTaxReport: null,
+            };
+          const modeKey =
+            gameMode === "reallife" ? "realLifeData" : "beamngData";
+          return {
+            todayWorkCount: save[modeKey]?.todayWorkCount || 0,
+            lastWorkDate: save[modeKey]?.lastWorkDate || null,
+            totalEarnings: save[modeKey]?.todayEarnings || 0,
+            pendingTaxReport: save[modeKey]?.pendingTaxReport || null,
+          };
+        }
+
+        function saveWorkTaxData(data) {
+          const save = getCurrentSave();
+          if (!save) return;
+          const modeKey =
+            gameMode === "reallife" ? "realLifeData" : "beamngData";
+          if (!save[modeKey]) save[modeKey] = {};
+          save[modeKey].todayWorkCount = data.todayWorkCount;
+          save[modeKey].lastWorkDate = data.lastWorkDate;
+          save[modeKey].todayEarnings = data.totalEarnings;
+          save[modeKey].pendingTaxReport = data.pendingTaxReport;
+          localStorage.setItem("beamng_saves", JSON.stringify(saves));
+        }
+
+        function incrementWorkCount(earnings) {
+          const today = getTodayDateString();
+          const data = getWorkTaxData();
+
+          // Jeśli nowy dzień - najpierw sprawdź czy jest oczekujący podatek
+          if (
+            data.lastWorkDate &&
+            data.lastWorkDate !== today &&
+            data.todayWorkCount > 0
+          ) {
+            // Oblicz podatek za poprzedni dzień
+            const taxAmount = calculateDailyTax(
+              data.todayWorkCount,
+              data.totalEarnings
+            );
+            data.pendingTaxReport = {
+              date: data.lastWorkDate,
+              workCount: data.todayWorkCount,
+              earnings: data.totalEarnings,
+              taxAmount: taxAmount,
+            };
+            // Reset na nowy dzień
+            data.todayWorkCount = 0;
+            data.totalEarnings = 0;
+          }
+
+          // Jeśli pierwszy raz dzisiaj
+          if (data.lastWorkDate !== today) {
+            data.todayWorkCount = 0;
+            data.totalEarnings = 0;
+            data.lastWorkDate = today;
+          }
+
+          data.todayWorkCount++;
+          data.totalEarnings += earnings;
+          saveWorkTaxData(data);
+        }
+
+        function calculateDailyTax(workCount, earnings) {
+          // Bazowy podatek: 5% od zarobków
+          // + 2% za każdą pracę powyżej 1
+          const baseRate = 0.05;
+          const extraRate = Math.max(0, workCount - 1) * 0.02;
+          const totalRate = Math.min(baseRate + extraRate, 0.25); // Max 25%
+          return Math.floor(earnings * totalRate);
+        }
+
+        function checkPendingTaxReport() {
+          const data = getWorkTaxData();
+          const today = getTodayDateString();
+
+          // Sprawdź czy jest oczekujący raport
+          if (data.pendingTaxReport) {
+            showTaxReport(data.pendingTaxReport);
+            return;
+          }
+
+          // Sprawdź czy poprzedni dzień miał prace i nie ma jeszcze raportu
+          if (
+            data.lastWorkDate &&
+            data.lastWorkDate !== today &&
+            data.todayWorkCount > 0
+          ) {
+            const taxAmount = calculateDailyTax(
+              data.todayWorkCount,
+              data.totalEarnings
+            );
+            const report = {
+              date: data.lastWorkDate,
+              workCount: data.todayWorkCount,
+              earnings: data.totalEarnings,
+              taxAmount: taxAmount,
+            };
+
+            // Zapisz jako oczekujący i zresetuj
+            const newData = {
+              todayWorkCount: 0,
+              lastWorkDate: today,
+              totalEarnings: 0,
+              pendingTaxReport: report,
+            };
+            saveWorkTaxData(newData);
+            showTaxReport(report);
+          }
+        }
+
+        function showTaxReport(report) {
+          const isEn = currentLang === "en";
+          const taxRate = Math.floor(
+            (report.taxAmount / report.earnings) * 100
+          );
+
+          let modal = document.getElementById("modalTaxReport");
+          if (!modal) {
+            modal = document.createElement("div");
+            modal.id = "modalTaxReport";
+            modal.className = "modal";
+            modal.style.display = "none";
+            modal.innerHTML = `<div class="modal-content" style="max-width: 400px;"><div id="taxReportContent"></div></div>`;
+            document.body.appendChild(modal);
+          }
+
+          const content = document.getElementById("taxReportContent");
+          content.innerHTML = `
+          <div style="background: #1a1a2e; border-radius: 10px; padding: 20px; font-family: 'Courier New', monospace;">
+            <div style="text-align: center; border-bottom: 2px dashed #444; padding-bottom: 15px; margin-bottom: 15px;">
+              <div style="font-size: 1.5em; font-weight: bold;">🧾 ${
+                isEn ? "TAX REPORT" : "RAPORT PODATKOWY"
+              }</div>
+              <div style="color: #888; margin-top: 5px;">${
+                isEn ? "Daily Income Tax" : "Podatek dochodowy dzienny"
+              }</div>
+              <div style="color: #666; font-size: 0.85em;">${report.date}</div>
+            </div>
+            
+            <div style="border-bottom: 1px dashed #444; padding-bottom: 10px; margin-bottom: 10px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span>💼 ${isEn ? "Work shifts" : "Zmiany pracy"}:</span>
+                <span>${report.workCount}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span>💰 ${isEn ? "Total earnings" : "Łączne zarobki"}:</span>
+                <span style="color: #4ade80;">+${report.earnings.toLocaleString()} ${getCurrency()}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span>📊 ${isEn ? "Tax rate" : "Stawka podatkowa"}:</span>
+                <span style="color: #f59e0b;">${taxRate}%</span>
+              </div>
+            </div>
+            
+            <div style="background: rgba(239,68,68,0.1); border: 1px solid #ef4444; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: bold;">${
+                  isEn ? "TAX DUE" : "DO ZAPŁATY"
+                }:</span>
+                <span style="color: #ef4444; font-size: 1.5em; font-weight: bold;">-${report.taxAmount.toLocaleString()} ${getCurrency()}</span>
+              </div>
+            </div>
+            
+            <div style="color: #666; font-size: 0.8em; text-align: center; margin-bottom: 15px;">
+              ${
+                isEn
+                  ? "Tax is automatically deducted from your account"
+                  : "Podatek jest automatycznie pobierany z konta"
+              }
+            </div>
+            
+            <button onclick="payTaxReport()" style="width: 100%; padding: 12px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1em;">
+              💸 ${
+                isEn ? "Pay Tax" : "Zapłać podatek"
+              } (-${report.taxAmount.toLocaleString()} ${getCurrency()})
+            </button>
+          </div>
+        `;
+
+          modal.style.display = "flex";
+        }
+
+        function payTaxReport() {
+          const data = getWorkTaxData();
+          const isEn = currentLang === "en";
+
+          if (!data.pendingTaxReport) return;
+
+          const taxAmount = data.pendingTaxReport.taxAmount;
+
+          if (money >= taxAmount) {
+            money -= taxAmount;
+            totalTaxPaid += taxAmount;
+            showToast(
+              `💸 ${
+                isEn ? "Tax paid" : "Podatek zapłacony"
+              }: -${taxAmount.toLocaleString()} ${getCurrency()}`
+            );
+          } else {
+            // Nie stać - dodaj do długu
+            const unpaid = taxAmount - money;
+            money = 0;
+            debt += unpaid;
+            totalTaxPaid += taxAmount - unpaid;
+            showToast(
+              `⚠️ ${
+                isEn
+                  ? "Not enough money! Debt increased by"
+                  : "Brak pieniędzy! Dług wzrósł o"
+              } ${unpaid.toLocaleString()} ${getCurrency()}`
+            );
+          }
+
+          // Wyczyść oczekujący raport
+          data.pendingTaxReport = null;
+          saveWorkTaxData(data);
+
+          saveState();
+          updateAllDisplays();
+
+          const modal = document.getElementById("modalTaxReport");
+          if (modal) modal.style.display = "none";
+        }
+
         let workInterval = null;
         let sleepInterval = null;
         let coinInterval = null;
@@ -9577,6 +9824,9 @@
           const finalPay = totalEarned - moneyLost;
 
           money += finalPay;
+
+          // === LICZNIK PRACY DLA PODATKÓW ===
+          incrementWorkCount(finalPay);
 
           // Dodaj doświadczenie za ukończoną pracę
           addWorkExperience(currentJob.difficulty);
@@ -10904,6 +11154,11 @@
           startHungerTimer();
           startInsuranceTimer();
           checkUrlForVoucher();
+
+          // Sprawdź oczekujące podatki od pracy
+          setTimeout(() => {
+            checkPendingTaxReport();
+          }, 1000);
 
           // Sprawdź czy zalogowany - jeśli nie, pokaż ekran logowania
           if (!checkRequireLogin()) {
