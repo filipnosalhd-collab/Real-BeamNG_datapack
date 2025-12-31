@@ -2029,17 +2029,6 @@
             </button>
           </div>
           <div class="header-btns-right">
-            <div class="notification-bell-container">
-              <button
-                class="notification-bell-btn"
-                onclick="openModal('notifications')"
-                title="Powiadomienia"
-                id="notificationBellBtn"
-              >
-                <span class="bell-icon">🔔</span>
-              </button>
-              <span id="notificationBadge" class="notification-badge">0</span>
-            </div>
             <button
               class="lang-btn"
               onclick="openModal('onlineAccount')"
@@ -16388,17 +16377,182 @@
         let ownerWorkInterval = null;
         let ownerWorkCollected = 0;
         let ownerWorkTimeLeft = 210; // 3:30 = 210 sekund
-        let ownerWorkCoinInterval = null;
+        let ownerWorkGameInterval = null;
+        let currentWorkCategory = null;
+
+        // ==================== ANIMACJE PRACY WG KATEGORII ====================
+
+        const categoryWorkGames = {
+          // 🍔 GASTRONOMIA - Łapanie zamówień na tacę
+          gastronomy: {
+            name: { pl: "Łapanie zamówień", en: "Catching Orders" },
+            icon: "🍔",
+            instruction: {
+              pl: "Klikaj spadające jedzenie zanim spadnie!",
+              en: "Click falling food before it drops!",
+            },
+            items: ["🍔", "🍕", "🍟", "🌭", "☕", "🍰", "🍺", "🥗", "🍣", "🍝"],
+            bonusItem: "⭐",
+            bgGradient:
+              "linear-gradient(180deg, #1a1a2e 0%, #2d1f0f 50%, #1a1a2e 100%)",
+            itemValue: 300,
+            bonusValue: 800,
+            spawnRate: 700,
+            fallSpeed: 2.8,
+          },
+
+          // 🛒 HANDEL - Skanowanie produktów
+          retail: {
+            name: { pl: "Skanowanie produktów", en: "Scanning Products" },
+            icon: "🛒",
+            instruction: {
+              pl: "Skanuj produkty klikając na nie!",
+              en: "Scan products by clicking them!",
+            },
+            items: ["📦", "🛍️", "📱", "👕", "💊", "🔧", "🎁", "🧴", "🥫", "🧃"],
+            bonusItem: "💎",
+            bgGradient:
+              "linear-gradient(180deg, #1a1a2e 0%, #1f2937 50%, #1a1a2e 100%)",
+            itemValue: 350,
+            bonusValue: 900,
+            spawnRate: 650,
+            fallSpeed: 2.5,
+          },
+
+          // 🔧 USŁUGI - Naprawianie (klikanie narzędzi)
+          services: {
+            name: { pl: "Obsługa klientów", en: "Serving Customers" },
+            icon: "🔧",
+            instruction: {
+              pl: "Klikaj klientów i narzędzia!",
+              en: "Click customers and tools!",
+            },
+            items: ["🔧", "💇", "🚿", "🏋️", "🛏️", "✂️", "🧽", "🔩", "🪛", "👤"],
+            bonusItem: "🌟",
+            bgGradient:
+              "linear-gradient(180deg, #1a1a2e 0%, #1e3a5f 50%, #1a1a2e 100%)",
+            itemValue: 400,
+            bonusValue: 1000,
+            spawnRate: 750,
+            fallSpeed: 2.6,
+          },
+
+          // 💰 FINANSE - Łapanie pieniędzy
+          finance: {
+            name: { pl: "Obsługa transakcji", en: "Processing Transactions" },
+            icon: "💰",
+            instruction: {
+              pl: "Łap pieniądze i karty!",
+              en: "Catch money and cards!",
+            },
+            items: ["💵", "💴", "💶", "💳", "🪙", "💎", "📊", "📈", "🏦", "💹"],
+            bonusItem: "💰",
+            bgGradient:
+              "linear-gradient(180deg, #1a1a2e 0%, #0f3d0f 50%, #1a1a2e 100%)",
+            itemValue: 500,
+            bonusValue: 1200,
+            spawnRate: 800,
+            fallSpeed: 2.4,
+          },
+
+          // 🚚 TRANSPORT - Łapanie paczek i pojazdów
+          transport: {
+            name: { pl: "Koordynacja dostaw", en: "Coordinating Deliveries" },
+            icon: "🚚",
+            instruction: {
+              pl: "Zarządzaj dostawami i pojazdami!",
+              en: "Manage deliveries and vehicles!",
+            },
+            items: ["📦", "🚚", "🚕", "🛻", "✈️", "🚛", "📮", "🗺️", "⛽", "🔑"],
+            bonusItem: "🏆",
+            bgGradient:
+              "linear-gradient(180deg, #1a1a2e 0%, #2d2d1f 50%, #1a1a2e 100%)",
+            itemValue: 450,
+            bonusValue: 1100,
+            spawnRate: 720,
+            fallSpeed: 2.7,
+          },
+
+          // 💻 TECHNOLOGIA - Łapanie kodu i komputerów
+          tech: {
+            name: { pl: "Kodowanie", en: "Coding" },
+            icon: "💻",
+            instruction: {
+              pl: "Łap błędy i pisz kod!",
+              en: "Catch bugs and write code!",
+            },
+            items: ["💻", "🖥️", "⌨️", "🐛", "🔌", "📟", "🖱️", "💾", "🌐", "📡"],
+            bonusItem: "🚀",
+            bgGradient:
+              "linear-gradient(180deg, #1a1a2e 0%, #0f1f3d 50%, #1a1a2e 100%)",
+            itemValue: 600,
+            bonusValue: 1500,
+            spawnRate: 850,
+            fallSpeed: 2.3,
+          },
+
+          // 🎬 ROZRYWKA - Łapanie biletów i gwiazdek
+          entertainment: {
+            name: { pl: "Zarządzanie eventem", en: "Event Management" },
+            icon: "🎬",
+            instruction: {
+              pl: "Łap bilety i gwiazdki!",
+              en: "Catch tickets and stars!",
+            },
+            items: ["🎬", "🎵", "🎤", "🕹️", "🎭", "🎪", "🎟️", "🎶", "🎧", "🎺"],
+            bonusItem: "🌟",
+            bgGradient:
+              "linear-gradient(180deg, #1a1a2e 0%, #3d1f3d 50%, #1a1a2e 100%)",
+            itemValue: 350,
+            bonusValue: 900,
+            spawnRate: 600,
+            fallSpeed: 3.0,
+          },
+
+          // 🏗️ BUDOWNICTWO - Łapanie materiałów budowlanych
+          construction: {
+            name: { pl: "Zarządzanie budową", en: "Construction Management" },
+            icon: "🏗️",
+            instruction: {
+              pl: "Łap materiały budowlane!",
+              en: "Catch building materials!",
+            },
+            items: ["🧱", "🔨", "📐", "🪵", "⚙️", "🪜", "🦺", "🪨", "🔩", "📏"],
+            bonusItem: "🏆",
+            bgGradient:
+              "linear-gradient(180deg, #1a1a2e 0%, #3d2d1f 50%, #1a1a2e 100%)",
+            itemValue: 550,
+            bonusValue: 1300,
+            spawnRate: 780,
+            fallSpeed: 2.5,
+          },
+        };
 
         function startOwnerWork(businessIndex) {
           const isEn = currentLang === "en";
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
 
           if (ownerWorkInterval) {
             showToast(
-              isEn ? "❌ You're already working!" : "❌ Już pracujesz!"
+              isEn ? "❌ You're already working!" : "❌ Już pracujesz!",
+              { type: "error" }
             );
             return;
           }
+
+          // Znajdź kategorię biznesu
+          const categories = getBusinessCategories();
+          let foundCategory = null;
+          for (const [catId, cat] of Object.entries(categories)) {
+            if (cat.types.some((t) => t.id === business.typeId)) {
+              foundCategory = catId;
+              break;
+            }
+          }
+
+          currentWorkCategory = foundCategory || "gastronomy";
+          const gameConfig = categoryWorkGames[currentWorkCategory];
 
           ownerWorkCollected = 0;
           ownerWorkTimeLeft = 210;
@@ -16408,48 +16562,83 @@
             modal = document.createElement("div");
             modal.id = "modalOwnerWork";
             modal.className = "modal";
-            modal.innerHTML = `
-            <div class="modal-content" style="max-width: 500px; height: 480px; position: relative; overflow: hidden; padding: 15px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <div style="font-size: 1.8em; font-family: monospace; color: #f59e0b;" id="ownerWorkTimer">3:30</div>
-                <div style="color: #4ade80; font-size: 1.3em; font-weight: bold;">💰 <span id="ownerWorkBonus">0</span> ${getCurrency()}</div>
-              </div>
-              
-              <div id="ownerWorkGameArea" style="position: relative; width: 100%; height: 320px; background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%); border-radius: 10px; overflow: hidden;">
-                <div id="ownerCoinsContainer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
-                <div style="position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); color: #444; font-size: 0.8em;">
-                  ${
-                    isEn
-                      ? "Click falling items!"
-                      : "Klikaj spadające przedmioty!"
-                  }
-                </div>
-              </div>
-              
-              <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <div style="flex: 1; background: rgba(74,222,128,0.1); padding: 8px; border-radius: 8px; text-align: center;">
-                  <span style="font-size: 1.2em;">💰</span> <span style="color: #4ade80;">500</span>
-                </div>
-                <div style="flex: 1; background: rgba(59,130,246,0.1); padding: 8px; border-radius: 8px; text-align: center;">
-                  <span style="font-size: 1.2em;">💎</span> <span style="color: #3b82f6;">1000</span>
-                </div>
-              </div>
-              
-              <button id="ownerWorkEndBtn" style="width: 100%; padding: 10px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">
-                ❌ ${isEn ? "End shift" : "Zakończ zmianę"}
-              </button>
-            </div>
-          `;
             document.body.appendChild(modal);
           }
 
-          // Reset
-          document.getElementById("ownerCoinsContainer").innerHTML = "";
-          document.getElementById("ownerWorkBonus").textContent = "0";
-          document.getElementById("ownerWorkTimer").textContent = "3:30";
+          const gameName = gameConfig.name[isEn ? "en" : "pl"];
+          const instruction = gameConfig.instruction[isEn ? "en" : "pl"];
+
+          modal.innerHTML = `
+          <div class="modal-content" style="max-width: 520px; height: 520px; position: relative; overflow: hidden; padding: 15px; background: linear-gradient(145deg, #1e293b, #0f172a); border: 2px solid rgba(255,107,53,0.5);">
+            
+            <!-- Header z kategorią -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 2em;">${gameConfig.icon}</span>
+                <div>
+                  <div style="font-size: 1em; font-weight: bold; color: #ff6b35;">${gameName}</div>
+                  <div style="font-size: 0.75em; color: #888;">${
+                    business.name
+                  }</div>
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 1.8em; font-family: monospace; color: #f59e0b;" id="ownerWorkTimer">3:30</div>
+              </div>
+            </div>
+            
+            <!-- Zebrane pieniądze -->
+            <div style="background: linear-gradient(145deg, rgba(74,222,128,0.2), rgba(74,222,128,0.05)); padding: 10px 15px; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div style="flex: 1;">
+                <span style="color: #888; font-size: 0.85em;">${
+                  isEn ? "Earned" : "Zebrano"
+                }:</span>
+                <span style="color: #4ade80; font-size: 1.5em; font-weight: bold; margin-left: 10px;" id="ownerWorkBonus">0</span>
+                <span style="color: #4ade80; font-size: 1em;"> ${getCurrency()}</span>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <div style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; font-size: 0.8em;">
+                  ${gameConfig.items[0]} <span style="color: #4ade80;">+${
+            gameConfig.itemValue
+          }</span>
+                </div>
+                <div style="background: rgba(255,215,0,0.2); padding: 4px 8px; border-radius: 6px; font-size: 0.8em;">
+                  ${gameConfig.bonusItem} <span style="color: #ffd700;">+${
+            gameConfig.bonusValue
+          }</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Obszar gry -->
+            <div id="ownerWorkGameArea" style="position: relative; width: 100%; height: 280px; background: ${
+              gameConfig.bgGradient
+            }; border-radius: 14px; overflow: hidden; box-shadow: inset 0 0 30px rgba(0,0,0,0.5);">
+              <div id="ownerCoinsContainer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+              
+              <!-- Instrukcja na środku -->
+              <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; opacity: 0.3;">
+                <div style="font-size: 3em; margin-bottom: 10px;">${
+                  gameConfig.icon
+                }</div>
+                <div style="color: #fff; font-size: 0.9em;">${instruction}</div>
+              </div>
+              
+              <!-- Efekt dolnej krawędzi -->
+              <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: linear-gradient(180deg, transparent, rgba(239,68,68,0.3)); pointer-events: none;"></div>
+            </div>
+            
+            <!-- Przycisk zakończenia -->
+            <button id="ownerWorkEndBtn" style="width: 100%; padding: 12px; background: linear-gradient(145deg, #ef4444, #dc2626); color: white; border: none; border-radius: 10px; cursor: pointer; margin-top: 12px; font-size: 1em; font-weight: bold; transition: all 0.2s;">
+              ❌ ${isEn ? "End shift early" : "Zakończ wcześniej"}
+            </button>
+          </div>
+        `;
+
           document.getElementById("ownerWorkEndBtn").onclick = () =>
             endOwnerWork(businessIndex);
 
+          modal.classList.add("active");
           modal.style.display = "flex";
 
           // Timer
@@ -16457,78 +16646,162 @@
             ownerWorkTimeLeft--;
             const mins = Math.floor(ownerWorkTimeLeft / 60);
             const secs = ownerWorkTimeLeft % 60;
-            document.getElementById(
-              "ownerWorkTimer"
-            ).textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
+            const timerEl = document.getElementById("ownerWorkTimer");
+            if (timerEl) {
+              timerEl.textContent = `${mins}:${secs
+                .toString()
+                .padStart(2, "0")}`;
+              if (ownerWorkTimeLeft <= 30) {
+                timerEl.style.color = "#ef4444";
+                timerEl.style.animation = "badge-pulse 0.5s infinite";
+              }
+            }
 
             if (ownerWorkTimeLeft <= 0) {
               endOwnerWork(businessIndex);
             }
           }, 1000);
 
-          // Spadające monety i diamenty
-          ownerWorkCoinInterval = setInterval(() => {
-            spawnOwnerWorkCoin();
-          }, 900);
+          // Spawn items
+          ownerWorkGameInterval = setInterval(() => {
+            spawnWorkItem(gameConfig);
+          }, gameConfig.spawnRate);
+
+          // Pierwszy item od razu
+          setTimeout(() => spawnWorkItem(gameConfig), 300);
         }
 
-        function spawnOwnerWorkCoin() {
+        function spawnWorkItem(gameConfig) {
           const container = document.getElementById("ownerCoinsContainer");
           if (!container) return;
 
-          const isDiamond = Math.random() < 0.25;
-          const value = isDiamond ? 1000 : 500;
+          const isBonus = Math.random() < 0.15; // 15% szans na bonus
+          const itemEmoji = isBonus
+            ? gameConfig.bonusItem
+            : gameConfig.items[
+                Math.floor(Math.random() * gameConfig.items.length)
+              ];
+          const value = isBonus ? gameConfig.bonusValue : gameConfig.itemValue;
 
-          const coin = document.createElement("div");
-          coin.innerHTML = isDiamond ? "💎" : "💰";
-          coin.style.cssText = `
+          const item = document.createElement("div");
+          item.innerHTML = itemEmoji;
+          item.dataset.value = value;
+          item.dataset.isBonus = isBonus;
+
+          const startX = Math.random() * 80 + 10;
+          const fallDuration = gameConfig.fallSpeed + Math.random() * 0.5;
+
+          item.style.cssText = `
           position: absolute;
           top: -60px;
-          left: ${Math.random() * 80 + 10}%;
-          font-size: 3em;
+          left: ${startX}%;
+          font-size: ${isBonus ? "3.5em" : "2.8em"};
           cursor: pointer;
           z-index: 5;
-          transition: top 3s linear, transform 0.1s, filter 0.1s;
+          transition: transform 0.15s, filter 0.15s;
           user-select: none;
+          filter: ${
+            isBonus
+              ? "drop-shadow(0 0 15px gold)"
+              : "drop-shadow(0 2px 4px rgba(0,0,0,0.5))"
+          };
+          animation: itemFall${Math.random()
+            .toString(36)
+            .substr(2, 5)} ${fallDuration}s linear forwards;
         `;
 
-          // Hover effect - podświetlenie
-          coin.onmouseenter = () => {
-            coin.style.transform = "scale(1.3)";
-            coin.style.filter =
-              "brightness(1.5) drop-shadow(0 0 10px " +
-              (isDiamond ? "#3b82f6" : "#4ade80") +
-              ")";
+          // Dodaj animację CSS inline (unikalna dla każdego itemu)
+          const styleId =
+            "workItemStyle" + Math.random().toString(36).substr(2, 5);
+          const style = document.createElement("style");
+          style.id = styleId;
+          style.textContent = `
+          @keyframes itemFall${styleId.replace("workItemStyle", "")} {
+            0% { top: -60px; }
+            100% { top: calc(100% + 60px); }
+          }
+        `;
+          document.head.appendChild(style);
+          item.style.animation = `itemFall${styleId.replace(
+            "workItemStyle",
+            ""
+          )} ${fallDuration}s linear forwards`;
+
+          // Hover effect
+          item.onmouseenter = () => {
+            item.style.transform = "scale(1.3)";
+            item.style.filter = `brightness(1.5) drop-shadow(0 0 20px ${
+              isBonus ? "gold" : "#4ade80"
+            })`;
           };
-          coin.onmouseleave = () => {
-            coin.style.transform = "scale(1)";
-            coin.style.filter = "none";
+          item.onmouseleave = () => {
+            item.style.transform = "scale(1)";
+            item.style.filter = isBonus
+              ? "drop-shadow(0 0 15px gold)"
+              : "drop-shadow(0 2px 4px rgba(0,0,0,0.5))";
           };
 
-          coin.onclick = () => {
+          // Click - collect
+          item.onclick = (e) => {
+            e.stopPropagation();
             playSound("coin");
+
             ownerWorkCollected += value;
-            document.getElementById("ownerWorkBonus").textContent =
-              ownerWorkCollected.toLocaleString();
-            coin.innerHTML = `+${value}`;
-            coin.style.color = isDiamond ? "#3b82f6" : "#4ade80";
-            coin.style.fontSize = "1.5em";
-            coin.style.pointerEvents = "none";
-            coin.style.filter = "none";
-            setTimeout(() => coin.remove(), 300);
+            const bonusEl = document.getElementById("ownerWorkBonus");
+            if (bonusEl)
+              bonusEl.textContent = ownerWorkCollected.toLocaleString();
+
+            // Animacja zebrania
+            item.style.transition = "all 0.3s ease-out";
+            item.style.transform = "scale(1.5)";
+            item.style.opacity = "0";
+            item.style.pointerEvents = "none";
+
+            // Popup z wartością
+            const popup = document.createElement("div");
+            popup.textContent = `+${value}`;
+            popup.style.cssText = `
+            position: absolute;
+            top: ${item.offsetTop}px;
+            left: ${item.offsetLeft}px;
+            color: ${isBonus ? "#ffd700" : "#4ade80"};
+            font-size: 1.2em;
+            font-weight: bold;
+            pointer-events: none;
+            text-shadow: 0 0 10px ${isBonus ? "gold" : "#4ade80"};
+            z-index: 100;
+            transition: all 0.8s ease-out;
+          `;
+            container.appendChild(popup);
+
+            // Animuj popup
+            setTimeout(() => {
+              popup.style.transform = "translateY(-50px)";
+              popup.style.opacity = "0";
+            }, 50);
+
+            setTimeout(() => {
+              item.remove();
+              popup.remove();
+              const styleToRemove = document.getElementById(styleId);
+              if (styleToRemove) styleToRemove.remove();
+            }, 350);
           };
 
-          container.appendChild(coin);
+          container.appendChild(item);
 
-          // Start falling
+          // Usuń po spadnięciu
           setTimeout(() => {
-            coin.style.top = "calc(100% + 60px)";
-          }, 50);
-
-          // Remove after fall
-          setTimeout(() => {
-            if (coin.parentNode) coin.remove();
-          }, 3500);
+            if (item.parentNode) {
+              item.style.transition = "opacity 0.3s ease-out";
+              item.style.opacity = "0";
+              setTimeout(() => {
+                item.remove();
+                const styleToRemove = document.getElementById(styleId);
+                if (styleToRemove) styleToRemove.remove();
+              }, 300);
+            }
+          }, fallDuration * 1000);
         }
 
         function endOwnerWork(businessIndex) {
@@ -16536,19 +16809,58 @@
             clearInterval(ownerWorkInterval);
             ownerWorkInterval = null;
           }
-          if (ownerWorkCoinInterval) {
-            clearInterval(ownerWorkCoinInterval);
-            ownerWorkCoinInterval = null;
+          if (ownerWorkGameInterval) {
+            clearInterval(ownerWorkGameInterval);
+            ownerWorkGameInterval = null;
           }
 
           const isEn = currentLang === "en";
           const businesses = getBusinesses();
           const business = businesses[businessIndex];
+          const gameConfig =
+            categoryWorkGames[currentWorkCategory] ||
+            categoryWorkGames.gastronomy;
 
-          if (ownerWorkCollected > 0) {
-            // 30% idzie na konto firmowe, 70% do gracza
+          // Pokaż podsumowanie przed zamknięciem
+          const modal = document.getElementById("modalOwnerWork");
+          if (modal && ownerWorkCollected > 0) {
             const companyShare = Math.floor(ownerWorkCollected * 0.3);
             const playerShare = ownerWorkCollected - companyShare;
+
+            modal.innerHTML = `
+            <div class="modal-content" style="max-width: 400px; text-align: center; padding: 30px; background: linear-gradient(145deg, #1e293b, #0f172a); border: 2px solid #4ade80;">
+              <div style="font-size: 4em; margin-bottom: 15px;">🎉</div>
+              <h2 style="color: #4ade80; margin-bottom: 20px;">${
+                isEn ? "Shift Complete!" : "Zmiana zakończona!"
+              }</h2>
+              
+              <div style="background: rgba(74,222,128,0.1); padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+                <div style="font-size: 0.9em; color: #888; margin-bottom: 5px;">${
+                  isEn ? "Total earned" : "Łącznie zebrano"
+                }</div>
+                <div style="font-size: 2.5em; font-weight: bold; color: #4ade80;">${ownerWorkCollected.toLocaleString()} ${getCurrency()}</div>
+              </div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                <div style="background: rgba(59,130,246,0.1); padding: 15px; border-radius: 10px;">
+                  <div style="font-size: 0.8em; color: #888;">👤 ${
+                    isEn ? "Your share" : "Twój udział"
+                  }</div>
+                  <div style="font-size: 1.3em; font-weight: bold; color: #3b82f6;">+${playerShare.toLocaleString()}</div>
+                </div>
+                <div style="background: rgba(245,158,11,0.1); padding: 15px; border-radius: 10px;">
+                  <div style="font-size: 0.8em; color: #888;">🏢 ${
+                    isEn ? "Company" : "Firma"
+                  }</div>
+                  <div style="font-size: 1.3em; font-weight: bold; color: #f59e0b;">+${companyShare.toLocaleString()}</div>
+                </div>
+              </div>
+              
+              <button onclick="closeOwnerWorkModal(${businessIndex})" style="width: 100%; padding: 15px; background: linear-gradient(145deg, #4ade80, #22c55e); color: white; border: none; border-radius: 10px; font-size: 1.1em; cursor: pointer; font-weight: bold;">
+                ✓ ${isEn ? "Great!" : "Świetnie!"}
+              </button>
+            </div>
+          `;
 
             money += playerShare;
             business.companyBalance =
@@ -16557,25 +16869,28 @@
             saveBusinesses(businesses);
             saveState();
             updateAllDisplays();
-
-            showToast(
-              `✅ ${
-                isEn ? "Earned" : "Zarobiono"
-              }: ${playerShare.toLocaleString()} ${getCurrency()} | 🏢 +${companyShare.toLocaleString()}`
-            );
           } else {
+            closeOwnerWorkModal(businessIndex);
             showToast(
-              isEn ? "😔 No earnings this shift" : "😔 Nic nie zarobiono"
+              isEn ? "😔 No earnings this shift" : "😔 Nic nie zarobiono",
+              { type: "warning" }
             );
           }
 
-          const modal = document.getElementById("modalOwnerWork");
-          if (modal) modal.style.display = "none";
-
           ownerWorkCollected = 0;
           ownerWorkTimeLeft = 210;
+          currentWorkCategory = null;
+        }
 
-          renderBusinessDetail(businessIndex);
+        function closeOwnerWorkModal(businessIndex) {
+          const modal = document.getElementById("modalOwnerWork");
+          if (modal) {
+            modal.classList.remove("active");
+            modal.style.display = "none";
+          }
+          if (businessIndex !== undefined) {
+            renderBusinessDetail(businessIndex);
+          }
         }
 
         // ========== SYSTEM CZATU Z AI (PRACOWNICY/KLIENCI) ==========
