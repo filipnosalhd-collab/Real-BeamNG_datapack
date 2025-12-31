@@ -16,6 +16,691 @@
         box-sizing: border-box;
       }
 
+      /* ==================== MEGA UPGRADE GRAFICZNY ==================== */
+
+      /* Animacje globalne */
+      @keyframes pulse-glow {
+        0%,
+        100% {
+          box-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+        }
+        50% {
+          box-shadow: 0 0 15px currentColor, 0 0 30px currentColor;
+        }
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-5px);
+        }
+      }
+
+      @keyframes shimmer {
+        0% {
+          background-position: -200% 0;
+        }
+        100% {
+          background-position: 200% 0;
+        }
+      }
+
+      @keyframes bell-ring {
+        0%,
+        100% {
+          transform: rotate(0deg);
+        }
+        10%,
+        30% {
+          transform: rotate(15deg);
+        }
+        20%,
+        40% {
+          transform: rotate(-15deg);
+        }
+        50% {
+          transform: rotate(0deg);
+        }
+      }
+
+      @keyframes notification-pop {
+        0% {
+          transform: scale(0.3);
+          opacity: 0;
+        }
+        50% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      @keyframes slide-in-right {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes slide-out-right {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+      }
+
+      @keyframes gradient-flow {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      @keyframes badge-pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.2);
+        }
+      }
+
+      /* ==================== DZWONECZEK POWIADOMIEŃ ==================== */
+      .notification-bell-container {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .notification-bell-btn {
+        background: linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.15),
+          rgba(255, 255, 255, 0.05)
+        );
+        border: 2px solid transparent;
+        border-image: linear-gradient(135deg, #ffd700, #ff6b35, #ffd700) 1;
+        color: #ffd700;
+        padding: 10px 14px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 1.3em;
+        min-width: 48px;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .notification-bell-btn::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 215, 0, 0.3),
+          transparent
+        );
+        transition: left 0.5s;
+      }
+
+      .notification-bell-btn:hover::before {
+        left: 100%;
+      }
+
+      .notification-bell-btn:hover {
+        background: linear-gradient(
+          145deg,
+          rgba(255, 215, 0, 0.3),
+          rgba(255, 107, 53, 0.2)
+        );
+        transform: scale(1.05);
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+      }
+
+      .notification-bell-btn.has-notifications {
+        animation: pulse-glow 2s infinite;
+        color: #ffd700;
+      }
+
+      .notification-bell-btn.has-notifications .bell-icon {
+        animation: bell-ring 1s ease-in-out infinite;
+      }
+
+      .bell-icon {
+        display: inline-block;
+        transition: transform 0.3s;
+      }
+
+      /* ==================== BADGE POWIADOMIEŃ ==================== */
+      .notification-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: linear-gradient(135deg, #ef4444, #dc2626, #b91c1c);
+        color: white;
+        font-size: 0.65em;
+        font-weight: bold;
+        padding: 4px 7px;
+        border-radius: 12px;
+        min-width: 22px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.6), 0 0 0 2px #1a1a2e;
+        animation: notification-pop 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 10;
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .notification-badge.active {
+        display: flex;
+        animation: notification-pop 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+          badge-pulse 2s infinite 0.5s;
+      }
+
+      .notification-badge.many {
+        background: linear-gradient(135deg, #dc2626, #991b1b, #7f1d1d);
+        font-size: 0.6em;
+        padding: 3px 6px;
+      }
+
+      /* ==================== TOAST POWIADOMIENIA (POPUP) ==================== */
+      .toast-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        min-width: 320px;
+        max-width: 420px;
+        background: linear-gradient(145deg, #1e293b, #0f172a);
+        border-radius: 16px;
+        padding: 0;
+        z-index: 10000;
+        animation: slide-in-right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5),
+          0 0 0 1px rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+        cursor: pointer;
+        transform-origin: top right;
+      }
+
+      .toast-notification.closing {
+        animation: slide-out-right 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      }
+
+      .toast-notification::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          #ffd700,
+          #ff6b35,
+          #ef4444,
+          #8b5cf6,
+          #3b82f6
+        );
+        background-size: 200% 100%;
+        animation: gradient-flow 3s linear infinite;
+      }
+
+      .toast-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px;
+      }
+
+      .toast-icon {
+        font-size: 2em;
+        flex-shrink: 0;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+      }
+
+      .toast-body {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .toast-title {
+        font-weight: bold;
+        font-size: 0.95em;
+        margin-bottom: 4px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .toast-message {
+        font-size: 0.85em;
+        color: #94a3b8;
+        line-height: 1.4;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+
+      .toast-time {
+        font-size: 0.7em;
+        color: #64748b;
+        margin-top: 4px;
+      }
+
+      .toast-close {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: #64748b;
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 1em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        opacity: 0;
+      }
+
+      .toast-notification:hover .toast-close {
+        opacity: 1;
+      }
+
+      .toast-close:hover {
+        background: rgba(239, 68, 68, 0.3);
+        color: #ef4444;
+      }
+
+      .toast-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #4ade80, #22c55e);
+        transition: width 0.1s linear;
+      }
+
+      /* ==================== MODAL POWIADOMIEŃ ==================== */
+      .notifications-modal-content {
+        background: linear-gradient(145deg, #1e293b, #0f172a) !important;
+        border: 2px solid transparent !important;
+        border-radius: 20px !important;
+        max-width: 550px !important;
+        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6),
+          0 0 0 1px rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+      }
+
+      .notifications-header {
+        background: linear-gradient(
+          135deg,
+          rgba(255, 107, 53, 0.2),
+          rgba(255, 215, 0, 0.1)
+        );
+        padding: 20px 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .notifications-header h2 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.3em;
+        color: #fff;
+        margin: 0;
+      }
+
+      .notifications-header .notif-count {
+        background: linear-gradient(135deg, #ff6b35, #f97316);
+        color: white;
+        font-size: 0.65em;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-weight: bold;
+      }
+
+      .notifications-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .notif-action-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+        padding: 8px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.8em;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .notif-action-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+      }
+
+      .notif-action-btn.danger:hover {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+        border-color: rgba(239, 68, 68, 0.3);
+      }
+
+      .notifications-list {
+        max-height: 500px;
+        overflow-y: auto;
+        padding: 16px;
+      }
+
+      .notifications-list::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .notifications-list::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 3px;
+      }
+
+      .notifications-list::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+      }
+
+      .notifications-list::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      /* ==================== POJEDYNCZE POWIADOMIENIE ==================== */
+      .notification-item {
+        background: linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.05),
+          rgba(255, 255, 255, 0.02)
+        );
+        border-radius: 14px;
+        padding: 14px 16px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        border: 1px solid transparent;
+        overflow: hidden;
+      }
+
+      .notification-item::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        border-radius: 4px 0 0 4px;
+        transition: width 0.3s;
+      }
+
+      .notification-item.unread {
+        background: linear-gradient(
+          145deg,
+          rgba(59, 130, 246, 0.15),
+          rgba(59, 130, 246, 0.05)
+        );
+        border-color: rgba(59, 130, 246, 0.3);
+      }
+
+      .notification-item.unread::before {
+        background: linear-gradient(180deg, #3b82f6, #2563eb);
+      }
+
+      .notification-item:hover {
+        transform: translateX(5px);
+        background: linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.08),
+          rgba(255, 255, 255, 0.04)
+        );
+        border-color: rgba(255, 255, 255, 0.15);
+      }
+
+      .notification-item:hover::before {
+        width: 6px;
+      }
+
+      /* Kolory według typu */
+      .notification-item.type-raise_request::before,
+      .notification-item.type-budget_request::before {
+        background: linear-gradient(180deg, #f59e0b, #d97706);
+      }
+      .notification-item.type-unhappy::before,
+      .notification-item.type-quit_warning::before,
+      .notification-item.type-client_review_bad::before,
+      .notification-item.type-low_cleanliness::before {
+        background: linear-gradient(180deg, #ef4444, #dc2626);
+      }
+      .notification-item.type-client_review_good::before,
+      .notification-item.type-day_end::before,
+      .notification-item.type-cleaning_done::before {
+        background: linear-gradient(180deg, #4ade80, #22c55e);
+      }
+      .notification-item.type-promotion_bought::before,
+      .notification-item.type-test_welcome::before {
+        background: linear-gradient(180deg, #8b5cf6, #7c3aed);
+      }
+      .notification-item.type-price_change::before,
+      .notification-item.type-new_candidate::before {
+        background: linear-gradient(180deg, #3b82f6, #2563eb);
+      }
+      .notification-item.type-hours_complaint::before {
+        background: linear-gradient(180deg, #f59e0b, #d97706);
+      }
+      .notification-item.type-client_review_neutral::before {
+        background: linear-gradient(180deg, #6b7280, #4b5563);
+      }
+
+      .notification-item-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .notification-icon {
+        font-size: 1.6em;
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        flex-shrink: 0;
+      }
+
+      .notification-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .notification-title {
+        font-weight: 600;
+        font-size: 0.95em;
+        color: #fff;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .notification-title .action-hint {
+        font-size: 0.8em;
+        opacity: 0.6;
+      }
+
+      .notification-text {
+        font-size: 0.85em;
+        color: #94a3b8;
+        line-height: 1.5;
+        margin-bottom: 6px;
+      }
+
+      .notification-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.75em;
+        color: #64748b;
+      }
+
+      .notification-meta .business-tag {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 2px 8px;
+        border-radius: 6px;
+      }
+
+      .notification-actions-row {
+        display: flex;
+        gap: 8px;
+        margin-left: auto;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+
+      .notification-item:hover .notification-actions-row {
+        opacity: 1;
+      }
+
+      .notif-delete-btn {
+        background: none;
+        border: none;
+        color: #64748b;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.85em;
+        transition: all 0.2s;
+      }
+
+      .notif-delete-btn:hover {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+      }
+
+      /* ==================== PUSTA LISTA POWIADOMIEŃ ==================== */
+      .notifications-empty {
+        text-align: center;
+        padding: 60px 30px;
+        color: #64748b;
+      }
+
+      .notifications-empty-icon {
+        font-size: 4em;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+
+      .notifications-empty h3 {
+        color: #94a3b8;
+        font-size: 1.1em;
+        margin-bottom: 8px;
+      }
+
+      .notifications-empty p {
+        font-size: 0.9em;
+        line-height: 1.5;
+      }
+
+      /* ==================== FILTERY POWIADOMIEŃ ==================== */
+      .notifications-filters {
+        display: flex;
+        gap: 8px;
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        overflow-x: auto;
+        flex-wrap: nowrap;
+      }
+
+      .notif-filter-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+        padding: 6px 14px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 0.8em;
+        white-space: nowrap;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .notif-filter-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+
+      .notif-filter-btn.active {
+        background: linear-gradient(135deg, #ff6b35, #f97316);
+        border-color: transparent;
+        color: white;
+      }
+
+      .notif-filter-count {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 1px 6px;
+        border-radius: 10px;
+        font-size: 0.85em;
+      }
+
       /* Ekran blokady mobilnej */
       #mobileBlockScreen {
         display: none;
@@ -81,30 +766,86 @@
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         background: linear-gradient(
           135deg,
-          #1a1a2e 0%,
-          #16213e 50%,
+          #0f0f1a 0%,
+          #1a1a2e 30%,
+          #16213e 60%,
           #0f3460 100%
         );
+        background-attachment: fixed;
         min-height: 100vh;
         color: #fff;
         padding: 10px;
         transition: background 0.5s ease;
       }
 
+      /* Efekt particles w tle */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: radial-gradient(
+            circle at 20% 80%,
+            rgba(255, 107, 53, 0.1) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 80% 20%,
+            rgba(59, 130, 246, 0.1) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 40% 40%,
+            rgba(139, 92, 246, 0.08) 0%,
+            transparent 30%
+          );
+        pointer-events: none;
+        z-index: 0;
+      }
+
       .container {
         max-width: 600px;
         margin: 0 auto;
+        position: relative;
+        z-index: 1;
       }
 
       header {
         text-align: center;
         padding: 20px;
         padding-top: 50px;
-        background: rgba(0, 0, 0, 0.4);
-        border-radius: 15px;
+        background: linear-gradient(
+          145deg,
+          rgba(0, 0, 0, 0.6),
+          rgba(0, 0, 0, 0.4)
+        );
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
         margin-bottom: 15px;
-        border: 2px solid #ff6b35;
+        border: 2px solid rgba(255, 107, 53, 0.5);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+          0 0 60px rgba(255, 107, 53, 0.1);
         position: relative;
+        overflow: hidden;
+      }
+
+      header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          #ff6b35,
+          #ffd700,
+          #ff6b35,
+          transparent
+        );
       }
 
       header h1 {
@@ -168,12 +909,37 @@
       }
 
       .money-display {
-        background: linear-gradient(145deg, #2d2d2d, #1a1a1a);
-        border-radius: 15px;
-        padding: 20px;
+        background: linear-gradient(
+          145deg,
+          rgba(45, 45, 45, 0.9),
+          rgba(26, 26, 26, 0.9)
+        );
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 24px;
         text-align: center;
         margin-bottom: 15px;
-        border: 2px solid #444;
+        border: 2px solid rgba(68, 68, 68, 0.5);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .money-display::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+          45deg,
+          transparent,
+          rgba(74, 222, 128, 0.03),
+          transparent
+        );
+        animation: shimmer 8s ease-in-out infinite;
       }
 
       .money-display h3 {
@@ -234,26 +1000,50 @@
         font-size: clamp(0.85em, 2.5vw, 1em);
         font-weight: bold;
         border: none;
-        border-radius: 12px;
+        border-radius: 14px;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 5px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      .btn::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: left 0.5s;
+      }
+
+      .btn:hover::before {
+        left: 100%;
       }
 
       .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4), 0 0 20px currentColor;
       }
 
       .btn:active {
-        transform: scale(0.98);
+        transform: scale(0.96);
       }
 
       .btn-icon {
         font-size: 1.8em;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
       }
 
       .btn-instruction {
@@ -299,14 +1089,21 @@
 
       /* Paski statusu */
       .status-bars {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 15px;
-        padding: 12px 15px;
+        background: linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.08),
+          rgba(255, 255, 255, 0.03)
+        );
+        backdrop-filter: blur(10px);
+        border-radius: 18px;
+        padding: 14px 18px;
         margin-bottom: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
       }
 
       .status-bar {
-        margin: 8px 0;
+        margin: 10px 0;
       }
 
       .status-bar:first-child {
@@ -319,33 +1116,55 @@
       .status-label {
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 6px;
         font-size: 0.8em;
-        margin-bottom: 4px;
-        color: #ccc;
+        margin-bottom: 6px;
+        color: #ddd;
+        font-weight: 500;
       }
 
       .status-track {
-        background: rgba(0, 0, 0, 0.4);
-        border-radius: 8px;
-        height: 16px;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 10px;
+        height: 18px;
         overflow: hidden;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
       }
 
       .status-fill {
         height: 100%;
-        border-radius: 8px;
-        transition: width 0.3s ease;
+        border-radius: 10px;
+        transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .status-fill::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 50%;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
+        border-radius: 10px 10px 0 0;
       }
 
       .status-fill.health {
-        background: linear-gradient(90deg, #ef4444, #f87171);
+        background: linear-gradient(90deg, #dc2626, #ef4444, #f87171);
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
       }
       .status-fill.food {
-        background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        background: linear-gradient(90deg, #d97706, #f59e0b, #fbbf24);
+        box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
       }
       .status-fill.water {
-        background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        background: linear-gradient(90deg, #2563eb, #3b82f6, #60a5fa);
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
       }
 
       .status-value {
@@ -437,7 +1256,8 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.95);
+        background: rgba(0, 0, 0, 0.9);
+        backdrop-filter: blur(8px);
         display: none;
         align-items: center;
         justify-content: center;
@@ -448,18 +1268,42 @@
 
       .modal.active {
         display: flex;
+        animation: modalFadeIn 0.3s ease;
+      }
+
+      @keyframes modalFadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
       }
 
       .modal-content {
-        background: linear-gradient(145deg, #2d2d2d, #1a1a1a);
-        border-radius: 15px;
-        padding: 20px;
+        background: linear-gradient(145deg, #1e293b, #0f172a);
+        border-radius: 20px;
+        padding: 24px;
         max-width: 450px;
         width: calc(100% - 20px);
         margin: 10px;
-        border: 2px solid #ff6b35;
+        border: 2px solid rgba(255, 107, 53, 0.5);
+        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6),
+          0 0 60px rgba(255, 107, 53, 0.1);
         max-height: 90vh;
         overflow-y: auto;
+        animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      @keyframes modalSlideIn {
+        from {
+          transform: translateY(-20px) scale(0.95);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0) scale(1);
+          opacity: 1;
+        }
       }
 
       @media (max-width: 480px) {
@@ -1185,31 +2029,17 @@
             </button>
           </div>
           <div class="header-btns-right">
-            <button
-              class="lang-btn"
-              onclick="openModal('notifications')"
-              title="Powiadomienia"
-              style="position: relative"
-            >
-              🔔
-              <span
-                id="notificationBadge"
-                style="
-                  display: none;
-                  position: absolute;
-                  top: -5px;
-                  right: -5px;
-                  background: #ef4444;
-                  color: white;
-                  font-size: 0.6em;
-                  padding: 2px 5px;
-                  border-radius: 10px;
-                  min-width: 15px;
-                  text-align: center;
-                "
-                >0</span
+            <div class="notification-bell-container">
+              <button
+                class="notification-bell-btn"
+                onclick="openModal('notifications')"
+                title="Powiadomienia"
+                id="notificationBellBtn"
               >
-            </button>
+                <span class="bell-icon">🔔</span>
+              </button>
+              <span id="notificationBadge" class="notification-badge">0</span>
+            </div>
             <button
               class="lang-btn"
               onclick="openModal('onlineAccount')"
@@ -3180,17 +4010,48 @@
         </div>
       </div>
 
-      <!-- Modal Powiadomienia -->
+      <!-- Modal Powiadomienia - MEGA UPGRADE -->
       <div class="modal" id="modalNotifications">
-        <div class="modal-content" style="max-width: 500px">
-          <span class="close" onclick="closeModal('notifications')"
-            >&times;</span
-          >
-          <h2>🔔 <span data-translate="notifications">Powiadomienia</span></h2>
-          <div
-            id="notificationsList"
-            style="max-height: 400px; overflow-y: auto"
-          ></div>
+        <div class="modal-content notifications-modal-content">
+          <div class="notifications-header">
+            <h2>
+              <span class="bell-icon">🔔</span>
+              <span data-translate="notifications">Powiadomienia</span>
+              <span class="notif-count" id="notifHeaderCount">0</span>
+            </h2>
+            <div class="notifications-actions">
+              <button
+                class="notif-action-btn"
+                onclick="markAllNotificationsRead()"
+                title="Oznacz jako przeczytane"
+              >
+                ✓ <span data-translate="markAllRead">Wszystkie</span>
+              </button>
+              <button
+                class="notif-action-btn danger"
+                onclick="clearAllNotifications()"
+                title="Wyczyść wszystkie"
+              >
+                🗑️
+              </button>
+              <span
+                class="close"
+                onclick="closeModal('notifications')"
+                style="
+                  background: none;
+                  border: none;
+                  font-size: 1.5em;
+                  cursor: pointer;
+                  color: #94a3b8;
+                "
+                >&times;</span
+              >
+            </div>
+          </div>
+          <div class="notifications-filters" id="notificationFilters">
+            <!-- Filtry generowane dynamicznie -->
+          </div>
+          <div id="notificationsList" class="notifications-list"></div>
         </div>
       </div>
 
@@ -3905,6 +4766,24 @@
             // System online
             onlineAccount: "Konto Online",
             notifications: "Powiadomienia",
+            markAllRead: "Wszystkie",
+            allNotifications: "Wszystkie",
+            workerNotifications: "Pracownicy",
+            clientReviews: "Opinie",
+            businessNotifications: "Firma",
+            unreadNotifications: "Nieprzeczytane",
+            noNotificationsTitle: "Brak powiadomień",
+            noNotificationsInCategory: "Brak powiadomień w tej kategorii",
+            createBusinessFirst: "Stwórz firmę aby otrzymywać powiadomienia",
+            hireWorkersFirst:
+              "Zatrudnij pracowników aby otrzymywać powiadomienia",
+            allCaughtUp: "Wszystko przejrzane! Sprawdź później.",
+            salaryRequest: "Prośba o podwyżkę",
+            quitWarning: "Groźba odejścia",
+            badReview: "Zła opinia",
+            goodReview: "Dobra opinia",
+            newCandidate: "Nowy kandydat",
+            dailyReport: "Raport dzienny",
             auctionHouse: "Dom Aukcyjny",
             browseAuctions: "Przeglądaj",
             myAuctions: "Moje",
@@ -4518,6 +5397,23 @@
             // Online system
             onlineAccount: "Online Account",
             notifications: "Notifications",
+            markAllRead: "All",
+            allNotifications: "All",
+            workerNotifications: "Workers",
+            clientReviews: "Reviews",
+            businessNotifications: "Business",
+            unreadNotifications: "Unread",
+            noNotificationsTitle: "No notifications",
+            noNotificationsInCategory: "No notifications in this category",
+            createBusinessFirst: "Create a business to receive notifications",
+            hireWorkersFirst: "Hire workers to get employee notifications",
+            allCaughtUp: "All caught up! Check back later.",
+            salaryRequest: "Salary request",
+            quitWarning: "Quit warning",
+            badReview: "Bad review",
+            goodReview: "Good review",
+            newCandidate: "New candidate",
+            dailyReport: "Daily report",
             auctionHouse: "Auction House",
             browseAuctions: "Browse",
             myAuctions: "My auctions",
@@ -7662,18 +8558,233 @@
           renderOnlineAccount();
         }
 
-        function showToast(message) {
-          const oldToast = document.getElementById("toast");
+        // ==================== MEGA TOAST NOTIFICATION SYSTEM ====================
+        let toastQueue = [];
+        let isShowingToast = false;
+
+        function showToast(message, options = {}) {
+          const {
+            type = "info",
+            icon = null,
+            title = null,
+            duration = 4000,
+            onClick = null,
+            businessIndex = null,
+            workerId = null,
+            notificationType = null,
+          } = options;
+
+          // Dodaj do kolejki
+          toastQueue.push({
+            message,
+            type,
+            icon,
+            title,
+            duration,
+            onClick,
+            businessIndex,
+            workerId,
+            notificationType,
+          });
+          processToastQueue();
+        }
+
+        function processToastQueue() {
+          if (isShowingToast || toastQueue.length === 0) return;
+
+          isShowingToast = true;
+          const toast = toastQueue.shift();
+          displayToastNotification(toast);
+        }
+
+        function displayToastNotification(toastData) {
+          const {
+            message,
+            type,
+            icon,
+            title,
+            duration,
+            onClick,
+            businessIndex,
+            workerId,
+            notificationType,
+          } = toastData;
+
+          // Usuń stary toast
+          const oldToast = document.querySelector(".toast-notification");
           if (oldToast) oldToast.remove();
 
-          const toast = document.createElement("div");
-          toast.id = "toast";
-          toast.textContent = message;
-          toast.style.cssText =
-            "position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:15px 30px;border-radius:10px;font-size:1.1em;z-index:9999;animation:fadeInOut 2s forwards;";
-          document.body.appendChild(toast);
-          setTimeout(() => toast.remove(), 2000);
+          // Określ ikonę i kolor
+          const typeConfig = {
+            success: {
+              icon: "✅",
+              color: "#4ade80",
+              title: currentLang === "en" ? "Success" : "Sukces",
+            },
+            error: {
+              icon: "❌",
+              color: "#ef4444",
+              title: currentLang === "en" ? "Error" : "Błąd",
+            },
+            warning: {
+              icon: "⚠️",
+              color: "#f59e0b",
+              title: currentLang === "en" ? "Warning" : "Uwaga",
+            },
+            info: {
+              icon: "ℹ️",
+              color: "#3b82f6",
+              title: currentLang === "en" ? "Info" : "Info",
+            },
+            money: {
+              icon: "💰",
+              color: "#4ade80",
+              title: currentLang === "en" ? "Money" : "Pieniądze",
+            },
+            worker: {
+              icon: "👷",
+              color: "#8b5cf6",
+              title: currentLang === "en" ? "Employee" : "Pracownik",
+            },
+            business: {
+              icon: "🏢",
+              color: "#f97316",
+              title: currentLang === "en" ? "Business" : "Firma",
+            },
+            notification: {
+              icon: "🔔",
+              color: "#ffd700",
+              title: currentLang === "en" ? "Notification" : "Powiadomienie",
+            },
+          };
+
+          // Detekcja typu na podstawie wiadomości
+          let detectedType = type;
+          if (
+            message.includes("✅") ||
+            message.includes("Sukces") ||
+            message.includes("Success")
+          )
+            detectedType = "success";
+          else if (
+            message.includes("❌") ||
+            message.includes("Błąd") ||
+            message.includes("Error")
+          )
+            detectedType = "error";
+          else if (message.includes("⚠️") || message.includes("Uwaga"))
+            detectedType = "warning";
+          else if (
+            message.includes("💰") ||
+            message.includes("zł") ||
+            message.includes("$")
+          )
+            detectedType = "money";
+          else if (message.includes("🔔")) detectedType = "notification";
+          else if (message.includes("🏢")) detectedType = "business";
+
+          const config = typeConfig[detectedType] || typeConfig.info;
+          const displayIcon = icon || config.icon;
+          const displayTitle = title || config.title;
+
+          // Wyczyść emoji z wiadomości dla czystego tekstu
+          const cleanMessage = message
+            .replace(/^[^\w\sąćęłńóśźżĄĆĘŁŃÓŚŹŻ]+\s*/g, "")
+            .trim();
+
+          // Stwórz HTML toasta
+          const toastHtml = `
+          <div class="toast-notification" id="currentToast" style="--toast-color: ${
+            config.color
+          }">
+            <button class="toast-close" onclick="event.stopPropagation(); closeCurrentToast()">×</button>
+            <div class="toast-content">
+              <div class="toast-icon" style="background: ${
+                config.color
+              }22; color: ${config.color}">
+                ${displayIcon}
+              </div>
+              <div class="toast-body">
+                <div class="toast-title" style="color: ${config.color}">
+                  ${displayTitle}
+                  ${
+                    businessIndex !== null
+                      ? '<span style="opacity:0.6;font-size:0.8em;">• Kliknij aby otworzyć</span>'
+                      : ""
+                  }
+                </div>
+                <div class="toast-message">${cleanMessage || message}</div>
+                <div class="toast-time">${new Date().toLocaleTimeString()}</div>
+              </div>
+            </div>
+            <div class="toast-progress" id="toastProgress"></div>
+          </div>
+        `;
+
+          document.body.insertAdjacentHTML("beforeend", toastHtml);
+
+          const toastEl = document.getElementById("currentToast");
+          const progressEl = document.getElementById("toastProgress");
+
+          // Kliknięcie - przeniesienie do miejsca
+          if (toastEl) {
+            toastEl.onclick = function () {
+              if (onClick) {
+                onClick();
+              } else if (businessIndex !== null) {
+                closeCurrentToast();
+                setTimeout(() => {
+                  if (workerId) {
+                    talkToWorker(businessIndex, workerId);
+                  } else {
+                    showBusinessDetail(businessIndex);
+                  }
+                }, 200);
+              } else if (notificationType) {
+                closeCurrentToast();
+                setTimeout(() => openModal("notifications"), 200);
+              }
+            };
+          }
+
+          // Animacja progress bar
+          let progress = 100;
+          const startTime = Date.now();
+          const progressInterval = setInterval(() => {
+            const elapsed = Date.now() - startTime;
+            progress = Math.max(0, 100 - (elapsed / duration) * 100);
+            if (progressEl) progressEl.style.width = progress + "%";
+
+            if (progress <= 0) {
+              clearInterval(progressInterval);
+            }
+          }, 50);
+
+          // Auto-zamknięcie
+          setTimeout(() => {
+            closeCurrentToast();
+          }, duration);
         }
+
+        function closeCurrentToast() {
+          const toast = document.querySelector(".toast-notification");
+          if (toast) {
+            toast.classList.add("closing");
+            setTimeout(() => {
+              toast.remove();
+              isShowingToast = false;
+              processToastQueue();
+            }, 300);
+          } else {
+            isShowingToast = false;
+            processToastQueue();
+          }
+        }
+
+        // Stara kompatybilna funkcja showToast (przepakowuje do nowej)
+        const originalShowToast = function (message) {
+          showToast(message, { duration: 3000 });
+        };
 
         // ========== DANE LOKALNE (bez serwera) ==========
         function getOnlineData() {
@@ -7843,6 +8954,9 @@
 
         function updateNotificationBadge() {
           const badge = document.getElementById("notificationBadge");
+          const bellBtn = document.getElementById("notificationBellBtn");
+          const headerCount = document.getElementById("notifHeaderCount");
+
           if (badge) {
             // Tylko worker notifications
             let workerNotifs = [];
@@ -7853,8 +8967,29 @@
             }
             const total = workerNotifs.filter((n) => !n.read).length;
 
-            badge.textContent = total > 99 ? "99+" : total;
-            badge.style.display = total > 0 ? "flex" : "none";
+            // Aktualizuj badge
+            if (total > 99) {
+              badge.textContent = "99+";
+              badge.classList.add("many");
+            } else {
+              badge.textContent = total;
+              badge.classList.remove("many");
+            }
+
+            // Pokaż/ukryj badge
+            if (total > 0) {
+              badge.classList.add("active");
+              if (bellBtn) bellBtn.classList.add("has-notifications");
+            } else {
+              badge.classList.remove("active");
+              if (bellBtn) bellBtn.classList.remove("has-notifications");
+            }
+
+            // Aktualizuj licznik w nagłówku modala
+            if (headerCount) {
+              headerCount.textContent = total;
+              headerCount.style.display = total > 0 ? "inline" : "none";
+            }
           }
         }
 
@@ -18010,12 +19145,11 @@
             ? business?.workers?.find((w) => w.id === workerId)
             : null;
 
+          const notifId =
+            "wn_" + Date.now() + "_" + Math.random().toString(36).substr(2, 6);
+
           notifications.push({
-            id:
-              "wn_" +
-              Date.now() +
-              "_" +
-              Math.random().toString(36).substr(2, 6),
+            id: notifId,
             businessIndex: businessIndex,
             businessName: business?.name || "Firma",
             workerId: workerId,
@@ -18035,18 +19169,89 @@
           saveWorkerNotifications(notifications);
           updateWorkerNotificationBadge();
 
-          // Pokaż toast dla ważnych powiadomień
-          if (
-            ["quit_warning", "raise_request", "client_review_bad"].includes(
-              type
-            )
-          ) {
-            showToast(
-              `🔔 ${worker?.name || business?.name}: ${message.substring(
-                0,
-                50
-              )}...`
-            );
+          // ==================== MEGA TOAST DLA WAŻNYCH POWIADOMIEŃ ====================
+          const importantTypes = [
+            "quit_warning",
+            "raise_request",
+            "client_review_bad",
+            "low_cleanliness",
+            "unhappy",
+          ];
+          const infoTypes = [
+            "new_candidate",
+            "day_end",
+            "client_review_good",
+            "promotion_bought",
+          ];
+
+          const isEn = currentLang === "en";
+
+          // Konfiguracja typów
+          const typeConfig = {
+            quit_warning: {
+              icon: "⚠️",
+              title: isEn ? "Quit Warning!" : "Groźba odejścia!",
+              type: "error",
+            },
+            raise_request: {
+              icon: "💰",
+              title: isEn ? "Salary Request" : "Prośba o podwyżkę",
+              type: "warning",
+            },
+            client_review_bad: {
+              icon: "😠",
+              title: isEn ? "Bad Review!" : "Zła opinia!",
+              type: "error",
+            },
+            client_review_good: {
+              icon: "😊",
+              title: isEn ? "Great Review!" : "Świetna opinia!",
+              type: "success",
+            },
+            low_cleanliness: {
+              icon: "⚠️",
+              title: isEn ? "Low Cleanliness!" : "Niska czystość!",
+              type: "warning",
+            },
+            unhappy: {
+              icon: "😤",
+              title: isEn ? "Unhappy Worker" : "Niezadowolony pracownik",
+              type: "warning",
+            },
+            new_candidate: {
+              icon: "📋",
+              title: isEn ? "New Candidate" : "Nowy kandydat",
+              type: "info",
+            },
+            day_end: {
+              icon: "📊",
+              title: isEn ? "Daily Report" : "Raport dzienny",
+              type: "success",
+            },
+            promotion_bought: {
+              icon: "📢",
+              title: isEn ? "Promotion Active" : "Promocja aktywna",
+              type: "success",
+            },
+          };
+
+          // Pokaż toast dla ważnych i informacyjnych powiadomień
+          if (importantTypes.includes(type) || infoTypes.includes(type)) {
+            const config = typeConfig[type] || {
+              icon: "🔔",
+              title: isEn ? "Notification" : "Powiadomienie",
+              type: "notification",
+            };
+
+            showToast(message, {
+              icon: config.icon,
+              title: `${config.title} • ${worker?.name || business?.name}`,
+              type: config.type,
+              duration: importantTypes.includes(type) ? 6000 : 4000,
+              businessIndex: businessIndex,
+              workerId: workerId,
+              notificationType: type,
+            });
           }
         }
 
@@ -18182,14 +19387,127 @@
           updateNotificationBadge();
         }
 
-        function renderWorkerNotifications() {
-          const container = document.getElementById("notificationsList");
+        // ==================== FILTR POWIADOMIEŃ ====================
+        let currentNotificationFilter = "all";
+
+        function renderNotificationFilters() {
+          const container = document.getElementById("notificationFilters");
           if (!container) return;
 
           const notifications = getWorkerNotifications();
           const isEn = currentLang === "en";
 
+          // Policz według typu
+          const typeCounts = {};
+          notifications.forEach((n) => {
+            const category = getNotificationCategory(n.type);
+            typeCounts[category] = (typeCounts[category] || 0) + 1;
+          });
+
+          const filters = [
+            {
+              id: "all",
+              label: isEn ? "All" : "Wszystkie",
+              icon: "📋",
+              count: notifications.length,
+            },
+            {
+              id: "worker",
+              label: isEn ? "Workers" : "Pracownicy",
+              icon: "👷",
+              count: typeCounts.worker || 0,
+            },
+            {
+              id: "client",
+              label: isEn ? "Reviews" : "Opinie",
+              icon: "⭐",
+              count: typeCounts.client || 0,
+            },
+            {
+              id: "business",
+              label: isEn ? "Business" : "Firma",
+              icon: "🏢",
+              count: typeCounts.business || 0,
+            },
+            {
+              id: "unread",
+              label: isEn ? "Unread" : "Nieprzeczytane",
+              icon: "🔵",
+              count: notifications.filter((n) => !n.read).length,
+            },
+          ];
+
+          container.innerHTML = filters
+            .map(
+              (f) => `
+          <button class="notif-filter-btn ${
+            currentNotificationFilter === f.id ? "active" : ""
+          }" 
+                  onclick="setNotificationFilter('${f.id}')"
+                  ${
+                    f.count === 0 && f.id !== "all" ? 'style="opacity:0.5"' : ""
+                  }>
+            ${f.icon} ${f.label}
+            ${
+              f.count > 0
+                ? `<span class="notif-filter-count">${f.count}</span>`
+                : ""
+            }
+          </button>
+        `
+            )
+            .join("");
+        }
+
+        function getNotificationCategory(type) {
+          if (
+            [
+              "raise_request",
+              "unhappy",
+              "quit_warning",
+              "hours_complaint",
+              "budget_request",
+            ].includes(type)
+          )
+            return "worker";
+          if (
+            [
+              "client_review_good",
+              "client_review_neutral",
+              "client_review_bad",
+            ].includes(type)
+          )
+            return "client";
+          return "business";
+        }
+
+        function setNotificationFilter(filter) {
+          currentNotificationFilter = filter;
+          renderNotificationFilters();
+          renderWorkerNotifications();
+        }
+
+        function renderWorkerNotifications() {
+          const container = document.getElementById("notificationsList");
+          if (!container) return;
+
+          let notifications = getWorkerNotifications();
+          const isEn = currentLang === "en";
+
+          // Renderuj filtry
+          renderNotificationFilters();
+
           console.log("Worker notifications:", notifications);
+
+          // Filtrowanie
+          if (currentNotificationFilter === "unread") {
+            notifications = notifications.filter((n) => !n.read);
+          } else if (currentNotificationFilter !== "all") {
+            notifications = notifications.filter(
+              (n) =>
+                getNotificationCategory(n.type) === currentNotificationFilter
+            );
+          }
 
           if (notifications.length === 0) {
             // Sprawdź czy są firmy
@@ -18199,18 +19517,34 @@
               b.workers?.some((w) => w.hired)
             );
 
-            let emptyMsg = isEn ? "No notifications" : "Brak powiadomień";
-            if (!hasBusinesses) {
-              emptyMsg += isEn
-                ? "\n(Create a business first)"
-                : "\n(Najpierw stwórz firmę)";
+            let emptyTitle = isEn ? "No notifications" : "Brak powiadomień";
+            let emptyMsg = "";
+
+            if (currentNotificationFilter !== "all") {
+              emptyMsg = isEn
+                ? "No notifications in this category"
+                : "Brak powiadomień w tej kategorii";
+            } else if (!hasBusinesses) {
+              emptyMsg = isEn
+                ? "Create a business to receive notifications"
+                : "Stwórz firmę aby otrzymywać powiadomienia";
             } else if (!hasHiredWorkers) {
-              emptyMsg += isEn
-                ? "\n(Hire workers to get notifications)"
-                : "\n(Zatrudnij pracowników aby otrzymywać powiadomienia)";
+              emptyMsg = isEn
+                ? "Hire workers to get employee notifications"
+                : "Zatrudnij pracowników aby otrzymywać powiadomienia";
+            } else {
+              emptyMsg = isEn
+                ? "All caught up! Check back later."
+                : "Wszystko przejrzane! Sprawdź później.";
             }
 
-            container.innerHTML = `<p style="color: #888; text-align: center; white-space: pre-line;">${emptyMsg}</p>`;
+            container.innerHTML = `
+            <div class="notifications-empty">
+              <div class="notifications-empty-icon">📭</div>
+              <h3>${emptyTitle}</h3>
+              <p>${emptyMsg}</p>
+            </div>
+          `;
             return;
           }
 
@@ -18220,41 +19554,96 @@
           );
 
           const typeConfig = {
-            raise_request: { icon: "💰", color: "#f59e0b", action: "chat" },
-            unhappy: { icon: "😤", color: "#ef4444", action: "chat" },
-            quit_warning: { icon: "⚠️", color: "#ef4444", action: "chat" },
-            hours_complaint: { icon: "🕐", color: "#f59e0b", action: "chat" },
-            budget_request: { icon: "💵", color: "#f59e0b", action: "chat" },
+            raise_request: {
+              icon: "💰",
+              color: "#f59e0b",
+              action: "chat",
+              label: isEn ? "Salary request" : "Prośba o podwyżkę",
+            },
+            unhappy: {
+              icon: "😤",
+              color: "#ef4444",
+              action: "chat",
+              label: isEn ? "Unhappy" : "Niezadowolony",
+            },
+            quit_warning: {
+              icon: "⚠️",
+              color: "#ef4444",
+              action: "chat",
+              label: isEn ? "Quit warning" : "Groźba odejścia",
+            },
+            hours_complaint: {
+              icon: "🕐",
+              color: "#f59e0b",
+              action: "chat",
+              label: isEn ? "Hours complaint" : "Skarga na godziny",
+            },
+            budget_request: {
+              icon: "💵",
+              color: "#f59e0b",
+              action: "chat",
+              label: isEn ? "Budget request" : "Prośba o budżet",
+            },
             client_review_good: {
               icon: "😊",
               color: "#4ade80",
               action: "review",
+              label: isEn ? "Good review" : "Dobra opinia",
             },
             client_review_neutral: {
               icon: "😐",
-              color: "#888",
+              color: "#6b7280",
               action: "review",
+              label: isEn ? "Neutral review" : "Neutralna opinia",
             },
             client_review_bad: {
               icon: "😠",
               color: "#ef4444",
               action: "review",
+              label: isEn ? "Bad review" : "Zła opinia",
             },
             promotion_bought: {
               icon: "📢",
               color: "#8b5cf6",
               action: "business",
+              label: isEn ? "Promotion" : "Promocja",
             },
-            price_change: { icon: "💰", color: "#3b82f6", action: "business" },
-            cleaning_done: { icon: "🧹", color: "#10b981", action: "business" },
+            price_change: {
+              icon: "💰",
+              color: "#3b82f6",
+              action: "business",
+              label: isEn ? "Price change" : "Zmiana cen",
+            },
+            cleaning_done: {
+              icon: "🧹",
+              color: "#10b981",
+              action: "business",
+              label: isEn ? "Cleaning" : "Sprzątanie",
+            },
             low_cleanliness: {
               icon: "⚠️",
               color: "#ef4444",
               action: "business",
+              label: isEn ? "Low cleanliness" : "Niska czystość",
             },
-            new_candidate: { icon: "📋", color: "#3b82f6", action: "business" },
-            day_end: { icon: "📊", color: "#4ade80", action: "business" },
-            test_welcome: { icon: "🎉", color: "#8b5cf6", action: "business" },
+            new_candidate: {
+              icon: "📋",
+              color: "#3b82f6",
+              action: "business",
+              label: isEn ? "New candidate" : "Nowy kandydat",
+            },
+            day_end: {
+              icon: "📊",
+              color: "#4ade80",
+              action: "business",
+              label: isEn ? "Daily report" : "Raport dzienny",
+            },
+            test_welcome: {
+              icon: "🎉",
+              color: "#8b5cf6",
+              action: "business",
+              label: isEn ? "Welcome" : "Powitanie",
+            },
           };
 
           container.innerHTML = sorted
@@ -18262,7 +19651,19 @@
               const time = new Date(n.timestamp);
               const now = new Date();
               let timeStr;
-              if (time.toDateString() === now.toDateString()) {
+
+              const diffMs = now - time;
+              const diffMins = Math.floor(diffMs / 60000);
+              const diffHours = Math.floor(diffMs / 3600000);
+
+              if (diffMins < 1) {
+                timeStr = isEn ? "Just now" : "Przed chwilą";
+              } else if (diffMins < 60) {
+                timeStr = `${diffMins} min`;
+              } else if (
+                diffHours < 24 &&
+                time.toDateString() === now.toDateString()
+              ) {
                 timeStr =
                   time.getHours().toString().padStart(2, "0") +
                   ":" +
@@ -18273,12 +19674,10 @@
 
               const config = typeConfig[n.type] || {
                 icon: "📩",
-                color: "#888",
+                color: "#6b7280",
                 action: "business",
+                label: "Powiadomienie",
               };
-              const bgColor = n.read
-                ? "rgba(255,255,255,0.02)"
-                : "rgba(59,130,246,0.1)";
 
               // Wybierz odpowiednią akcję
               let clickAction;
@@ -18292,38 +19691,38 @@
               let actionHint = "";
               if (config.action === "chat") actionHint = "💬";
               else if (config.action === "review") actionHint = "👁️";
-              else if (config.action === "business") actionHint = "🏢";
+              else if (config.action === "business") actionHint = "→";
 
               return `
-            <div style="background: ${bgColor}; padding: 12px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; border-left: 3px solid ${
-                n.read ? "#333" : config.color
-              };"
+            <div class="notification-item ${n.read ? "" : "unread"} type-${
+                n.type
+              }"
                  onclick="${clickAction}">
-              <div style="display: flex; justify-content: space-between; align-items: start;">
-                <div style="flex: 1;">
-                  <div style="font-weight: bold; margin-bottom: 4px; color: ${
-                    config.color
-                  };">
-                    ${config.icon} ${n.workerName || n.businessName}
-                    <span style="font-size: 0.7em; color: #666; margin-left: 5px;">${actionHint}</span>
-                  </div>
-                  <div style="color: #aaa; font-size: 0.9em;">${
-                    n.message || ""
-                  }</div>
-                  ${
-                    n.workerName && n.businessName
-                      ? `<div style="color: #666; font-size: 0.8em; margin-top: 4px;">🏢 ${n.businessName}</div>`
-                      : ""
-                  }
+              <div class="notification-item-header">
+                <div class="notification-icon" style="background: ${
+                  config.color
+                }22; color: ${config.color}">
+                  ${config.icon}
                 </div>
-                <div style="text-align: right; min-width: 60px;">
-                  <div style="color: #666; font-size: 0.75em;">${timeStr}</div>
-                  <button onclick="event.stopPropagation(); deleteWorkerNotification('${
+                <div class="notification-content">
+                  <div class="notification-title">
+                    ${n.workerName || n.businessName}
+                    <span class="action-hint">${actionHint}</span>
+                  </div>
+                  <div class="notification-text">${n.message || ""}</div>
+                  <div class="notification-meta">
+                    <span>🕐 ${timeStr}</span>
+                    ${
+                      n.workerName && n.businessName
+                        ? `<span class="business-tag">🏢 ${n.businessName}</span>`
+                        : ""
+                    }
+                  </div>
+                </div>
+                <div class="notification-actions-row">
+                  <button class="notif-delete-btn" onclick="event.stopPropagation(); deleteWorkerNotification('${
                     n.id
-                  }')" 
-                          style="background: none; border: none; color: #666; cursor: pointer; font-size: 0.8em; margin-top: 5px; opacity: 0.5;"
-                          onmouseover="this.style.opacity=1; this.style.color='#ef4444'" 
-                          onmouseout="this.style.opacity=0.5; this.style.color='#666'">
+                  }')" title="${isEn ? "Delete" : "Usuń"}">
                     🗑️
                   </button>
                 </div>
@@ -18332,6 +19731,22 @@
           `;
             })
             .join("");
+        }
+
+        function markAllNotificationsRead() {
+          const notifications = getWorkerNotifications();
+          notifications.forEach((n) => (n.read = true));
+          saveWorkerNotifications(notifications);
+          updateWorkerNotificationBadge();
+          renderWorkerNotifications();
+
+          const isEn = currentLang === "en";
+          showToast(
+            isEn
+              ? "✅ All notifications marked as read"
+              : "✅ Wszystkie powiadomienia oznaczone jako przeczytane",
+            { type: "success", duration: 2000 }
+          );
         }
 
         function markWorkerNotifRead(notifId) {
