@@ -612,6 +612,17 @@
         }
       }
 
+      @keyframes fadeUp {
+        0% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -100%) scale(1.5);
+        }
+      }
+
       .ai-response .result-icon {
         font-size: 2.5em;
         margin-bottom: 5px;
@@ -9385,6 +9396,7 @@
 
         function spawnCoin() {
           const container = document.getElementById("coinsContainer");
+
           const coin = document.createElement("div");
           coin.className = "falling-coin";
           coin.innerHTML = "💰";
@@ -9395,8 +9407,19 @@
                 font-size: 4em;
                 cursor: pointer;
                 z-index: 5;
-                transition: top 3s linear;
+                transition: top 3s linear, transform 0.1s, filter 0.1s;
+                user-select: none;
             `;
+
+          // Hover effect - podświetlenie
+          coin.onmouseenter = () => {
+            coin.style.transform = "scale(1.3)";
+            coin.style.filter = "brightness(1.5) drop-shadow(0 0 10px #4ade80)";
+          };
+          coin.onmouseleave = () => {
+            coin.style.transform = "scale(1)";
+            coin.style.filter = "none";
+          };
 
           coin.onclick = () => {
             playSound("coin");
@@ -9406,6 +9429,8 @@
             coin.innerHTML = "+100";
             coin.style.color = "#4ade80";
             coin.style.fontSize = "2em";
+            coin.style.pointerEvents = "none";
+            coin.style.filter = "none";
             setTimeout(() => coin.remove(), 300);
           };
 
@@ -12803,39 +12828,39 @@
                   name: "Fast Food",
                   icon: "🍟",
                   startCost: 25000,
-                  clientsPerDay: 10,
-                  avgIncome: 50,
+                  clientsPerDay: 150,
+                  avgIncome: 35,
                 },
                 {
                   id: "restaurant",
                   name: isEn ? "Restaurant" : "Restauracja",
                   icon: "🍽️",
                   startCost: 75000,
-                  clientsPerDay: 8,
-                  avgIncome: 150,
+                  clientsPerDay: 60,
+                  avgIncome: 120,
                 },
                 {
                   id: "cafe",
                   name: isEn ? "Cafe" : "Kawiarnia",
                   icon: "☕",
                   startCost: 35000,
-                  clientsPerDay: 15,
-                  avgIncome: 30,
+                  clientsPerDay: 80,
+                  avgIncome: 25,
                 },
                 {
                   id: "pizzeria",
                   name: "Pizzeria",
                   icon: "🍕",
                   startCost: 45000,
-                  clientsPerDay: 12,
-                  avgIncome: 60,
+                  clientsPerDay: 70,
+                  avgIncome: 55,
                 },
                 {
                   id: "bar",
                   name: "Bar",
                   icon: "🍺",
                   startCost: 55000,
-                  clientsPerDay: 20,
+                  clientsPerDay: 100,
                   avgIncome: 40,
                 },
               ],
@@ -12848,31 +12873,31 @@
                   name: isEn ? "Grocery Store" : "Sklep spożywczy",
                   icon: "🛒",
                   startCost: 40000,
-                  clientsPerDay: 25,
-                  avgIncome: 20,
+                  clientsPerDay: 200,
+                  avgIncome: 45,
                 },
                 {
                   id: "electronics",
                   name: isEn ? "Electronics Store" : "Sklep elektroniczny",
                   icon: "📱",
                   startCost: 100000,
-                  clientsPerDay: 5,
-                  avgIncome: 500,
+                  clientsPerDay: 40,
+                  avgIncome: 350,
                 },
                 {
                   id: "clothes",
                   name: isEn ? "Clothing Boutique" : "Butik odzieżowy",
                   icon: "👕",
                   startCost: 60000,
-                  clientsPerDay: 8,
-                  avgIncome: 120,
+                  clientsPerDay: 50,
+                  avgIncome: 150,
                 },
                 {
                   id: "autoparts",
                   name: isEn ? "Auto Parts Store" : "Sklep z częściami",
                   icon: "🔧",
                   startCost: 80000,
-                  clientsPerDay: 6,
+                  clientsPerDay: 35,
                   avgIncome: 200,
                 },
                 {
@@ -12880,8 +12905,8 @@
                   name: isEn ? "Pharmacy" : "Apteka",
                   icon: "💊",
                   startCost: 120000,
-                  clientsPerDay: 15,
-                  avgIncome: 80,
+                  clientsPerDay: 120,
+                  avgIncome: 65,
                 },
               ],
             },
@@ -12893,40 +12918,40 @@
                   name: isEn ? "Car Wash" : "Myjnia samochodowa",
                   icon: "🚿",
                   startCost: 30000,
-                  clientsPerDay: 20,
-                  avgIncome: 35,
+                  clientsPerDay: 45,
+                  avgIncome: 50,
                 },
                 {
                   id: "mechanic",
                   name: isEn ? "Auto Workshop" : "Warsztat samochodowy",
                   icon: "🔧",
                   startCost: 70000,
-                  clientsPerDay: 5,
-                  avgIncome: 300,
+                  clientsPerDay: 12,
+                  avgIncome: 450,
                 },
                 {
                   id: "hairdresser",
                   name: isEn ? "Hair Salon" : "Salon fryzjerski",
                   icon: "💇",
                   startCost: 25000,
-                  clientsPerDay: 12,
-                  avgIncome: 50,
+                  clientsPerDay: 25,
+                  avgIncome: 80,
                 },
                 {
                   id: "gym",
                   name: isEn ? "Gym" : "Siłownia",
                   icon: "🏋️",
                   startCost: 90000,
-                  clientsPerDay: 30,
-                  avgIncome: 25,
+                  clientsPerDay: 150,
+                  avgIncome: 15,
                 },
                 {
                   id: "hotel",
                   name: "Hotel",
                   icon: "🏨",
                   startCost: 200000,
-                  clientsPerDay: 10,
-                  avgIncome: 200,
+                  clientsPerDay: 50,
+                  avgIncome: 250,
                 },
               ],
             },
@@ -12938,8 +12963,8 @@
                   name: isEn ? "Bank" : "Bank",
                   icon: "🏦",
                   startCost: 500000,
-                  clientsPerDay: 15,
-                  avgIncome: 100,
+                  clientsPerDay: 200,
+                  avgIncome: 50,
                   special: "bank",
                 },
                 {
@@ -12947,8 +12972,8 @@
                   name: isEn ? "Insurance Company" : "Firma ubezpieczeniowa",
                   icon: "🛡️",
                   startCost: 300000,
-                  clientsPerDay: 8,
-                  avgIncome: 250,
+                  clientsPerDay: 30,
+                  avgIncome: 400,
                   special: "insurance",
                 },
                 {
@@ -12956,16 +12981,16 @@
                   name: isEn ? "Currency Exchange" : "Kantor",
                   icon: "💱",
                   startCost: 150000,
-                  clientsPerDay: 20,
-                  avgIncome: 50,
+                  clientsPerDay: 80,
+                  avgIncome: 25,
                 },
                 {
                   id: "loans",
                   name: isEn ? "Loan Company" : "Firma pożyczkowa",
                   icon: "💳",
                   startCost: 250000,
-                  clientsPerDay: 10,
-                  avgIncome: 150,
+                  clientsPerDay: 25,
+                  avgIncome: 300,
                   special: "loans",
                 },
               ],
@@ -12978,15 +13003,15 @@
                   name: isEn ? "Taxi Company" : "Firma taksówkowa",
                   icon: "🚕",
                   startCost: 50000,
-                  clientsPerDay: 25,
-                  avgIncome: 40,
+                  clientsPerDay: 80,
+                  avgIncome: 45,
                 },
                 {
                   id: "delivery",
                   name: isEn ? "Delivery Company" : "Firma kurierska",
                   icon: "📦",
                   startCost: 80000,
-                  clientsPerDay: 30,
+                  clientsPerDay: 150,
                   avgIncome: 25,
                 },
                 {
@@ -12994,16 +13019,16 @@
                   name: isEn ? "Trucking Company" : "Firma transportowa",
                   icon: "🚛",
                   startCost: 200000,
-                  clientsPerDay: 5,
-                  avgIncome: 500,
+                  clientsPerDay: 15,
+                  avgIncome: 800,
                 },
                 {
                   id: "rental",
                   name: isEn ? "Car Rental" : "Wypożyczalnia aut",
                   icon: "🚗",
                   startCost: 150000,
-                  clientsPerDay: 8,
-                  avgIncome: 150,
+                  clientsPerDay: 20,
+                  avgIncome: 200,
                 },
               ],
             },
@@ -13015,32 +13040,32 @@
                   name: "Software House",
                   icon: "💻",
                   startCost: 100000,
-                  clientsPerDay: 3,
-                  avgIncome: 1000,
+                  clientsPerDay: 5,
+                  avgIncome: 3000,
                 },
                 {
                   id: "itservice",
                   name: isEn ? "IT Service" : "Serwis IT",
                   icon: "🖥️",
                   startCost: 40000,
-                  clientsPerDay: 8,
-                  avgIncome: 150,
+                  clientsPerDay: 20,
+                  avgIncome: 250,
                 },
                 {
                   id: "webagency",
                   name: isEn ? "Web Agency" : "Agencja webowa",
                   icon: "🌐",
                   startCost: 60000,
-                  clientsPerDay: 5,
-                  avgIncome: 300,
+                  clientsPerDay: 8,
+                  avgIncome: 600,
                 },
                 {
                   id: "gaming",
                   name: isEn ? "Game Studio" : "Studio gier",
                   icon: "🎮",
                   startCost: 150000,
-                  clientsPerDay: 2,
-                  avgIncome: 2000,
+                  clientsPerDay: 3,
+                  avgIncome: 5000,
                 },
               ],
             },
@@ -13052,32 +13077,32 @@
                   name: isEn ? "Cinema" : "Kino",
                   icon: "🎬",
                   startCost: 300000,
-                  clientsPerDay: 100,
-                  avgIncome: 30,
+                  clientsPerDay: 500,
+                  avgIncome: 35,
                 },
                 {
                   id: "club",
                   name: isEn ? "Night Club" : "Klub nocny",
                   icon: "🎵",
                   startCost: 200000,
-                  clientsPerDay: 50,
-                  avgIncome: 40,
+                  clientsPerDay: 300,
+                  avgIncome: 50,
                 },
                 {
                   id: "arcade",
                   name: isEn ? "Arcade" : "Salon gier",
                   icon: "🕹️",
                   startCost: 80000,
-                  clientsPerDay: 40,
-                  avgIncome: 15,
+                  clientsPerDay: 100,
+                  avgIncome: 30,
                 },
                 {
                   id: "escape",
                   name: "Escape Room",
                   icon: "🔐",
                   startCost: 50000,
-                  clientsPerDay: 6,
-                  avgIncome: 100,
+                  clientsPerDay: 20,
+                  avgIncome: 120,
                 },
               ],
             },
@@ -13089,24 +13114,24 @@
                   name: isEn ? "Construction Company" : "Firma budowlana",
                   icon: "🏗️",
                   startCost: 250000,
-                  clientsPerDay: 2,
-                  avgIncome: 2000,
+                  clientsPerDay: 8,
+                  avgIncome: 5000,
                 },
                 {
                   id: "renovation",
                   name: isEn ? "Renovation Company" : "Firma remontowa",
                   icon: "🔨",
                   startCost: 80000,
-                  clientsPerDay: 4,
-                  avgIncome: 500,
+                  clientsPerDay: 15,
+                  avgIncome: 800,
                 },
                 {
                   id: "architecture",
                   name: isEn ? "Architecture Office" : "Biuro architektoniczne",
                   icon: "📐",
                   startCost: 120000,
-                  clientsPerDay: 3,
-                  avgIncome: 800,
+                  clientsPerDay: 6,
+                  avgIncome: 2000,
                 },
               ],
             },
@@ -13313,6 +13338,39 @@
             personalities[Math.floor(Math.random() * personalities.length)];
           const pos = positions[position];
 
+          // === POPRZEDNIA PRACA ===
+          const previousJobs = getPreviousJobs();
+          const hasPreviousJob = Math.random() > 0.25; // 75% ma poprzednią pracę
+          const previousJob = hasPreviousJob
+            ? previousJobs[Math.floor(Math.random() * previousJobs.length)]
+            : null;
+
+          // === PREFEROWANA ROLA ===
+          const roles = getWorkerRoles();
+          // Niektóre role są bardziej prawdopodobne dla pewnych stanowisk
+          let preferredRole;
+          if (position === "manager") {
+            preferredRole =
+              Math.random() > 0.3
+                ? "supervisor"
+                : Math.random() > 0.5
+                ? "marketing"
+                : "pricing";
+          } else if (position === "senior") {
+            preferredRole =
+              Math.random() > 0.5
+                ? "service"
+                : Math.random() > 0.5
+                ? "marketing"
+                : "pricing";
+          } else {
+            preferredRole = "service"; // Juniorzy i regularni głównie obsługa
+            if (Math.random() > 0.8)
+              preferredRole = Math.random() > 0.5 ? "marketing" : "pricing";
+          }
+
+          const roleInfo = roles[preferredRole];
+
           // Bazowa dniówka (tygodniówka / 7)
           const baseWeeklySalary = Math.floor(
             pos.baseSalary * personality.salaryMod * (0.9 + Math.random() * 0.3)
@@ -13322,13 +13380,15 @@
           const bonusPercent = Math.floor(5 + Math.random() * 20);
 
           // Losowe dodatkowe cechy wpływające na cenę
-          const hasExperience = Math.random() > 0.6; // 40% ma doświadczenie
-          const hasReferences = Math.random() > 0.5; // 50% ma referencje
+          const hasExperience = hasPreviousJob && Math.random() > 0.4; // Doświadczenie z poprzedniej pracy
+          const hasReferences = hasPreviousJob && Math.random() > 0.3; // Referencje z poprzedniej
           const needsTraining =
-            personality.id === "newbie" || Math.random() > 0.7;
-          const isFlexible = Math.random() > 0.6; // 40% jest elastyczny z godzinami
-          const wantsStability = Math.random() > 0.5; // 50% chce stałą umowę
-          const expectsBonus = Math.random() > 0.4; // 60% oczekuje bonusu za podpis
+            !hasPreviousJob ||
+            personality.id === "newbie" ||
+            Math.random() > 0.7;
+          const isFlexible = Math.random() > 0.6;
+          const wantsStability = Math.random() > 0.5;
+          const expectsBonus = Math.random() > 0.4;
 
           // Modyfikatory ceny za cechy
           let priceModifier = 1.0;
@@ -13366,7 +13426,12 @@
             priceReasons.push({ id: "ambitious", mod: "+30%" });
           }
 
-          // Dodaj powód za stanowisko
+          // Role wymagające budżetu kosztują więcej
+          if (roleInfo.needsBudget) {
+            priceModifier += 0.1;
+            priceReasons.push({ id: "specialRole", mod: "+10%" });
+          }
+
           priceReasons.push({
             id: "position_" + position,
             mod: pos.baseSalary + " base",
@@ -13377,15 +13442,26 @@
             expectedDailySalary * priceModifier
           );
 
-          // Oczekiwany bonus za podpis (0-500)
+          // Oczekiwany bonus za podpis
           const signingBonus = expectsBonus
             ? Math.floor(100 + Math.random() * 400)
             : 0;
 
-          // Oczekiwane wyniki (ilość klientów obsłużonych dziennie)
-          const expectedPerformance = Math.floor(
-            5 + personality.productivityMod * 10
-          );
+          // Oczekiwane wyniki - REALISTYCZNE (zależne od roli)
+          let expectedPerformance;
+          if (preferredRole === "service") {
+            expectedPerformance = Math.floor(
+              10 + personality.productivityMod * 8
+            ); // 10-18 klientów
+          } else {
+            expectedPerformance = 0; // Role inne niż obsługa nie obsługują klientów
+          }
+
+          // Oczekiwany budżet (dla ról które go potrzebują)
+          let expectedBudget = 0;
+          if (roleInfo.needsBudget) {
+            expectedBudget = Math.floor(500 + Math.random() * 2000); // 500-2500
+          }
 
           return {
             id: Date.now() + Math.random().toString(36).substr(2, 9),
@@ -13394,6 +13470,18 @@
             position: position,
             positionName: pos.name,
             personality: personality,
+
+            // === POPRZEDNIA PRACA ===
+            previousJob: previousJob,
+
+            // === ROLA ===
+            preferredRole: preferredRole,
+            assignedRole: null, // Ustala pracodawca
+
+            // === BUDŻET ===
+            expectedBudget: expectedBudget,
+            assignedBudget: 0, // Ustala pracodawca
+            budgetSpent: 0, // Ile wydał
 
             // Wynagrodzenie
             expectedDailySalary: finalDailySalary,
@@ -13419,8 +13507,8 @@
             // Kontrakt
             signingBonus: signingBonus,
             expectedPerformance: expectedPerformance,
-            contractType: null, // 'fixed' lub 'performance' - ustala pracodawca
-            canReduceSalary: false, // czy można obniżyć - ustala pracodawca
+            contractType: null,
+            canReduceSalary: false,
 
             // Status
             hired: false,
@@ -13428,12 +13516,167 @@
             satisfaction: 100,
             daysWorked: 0,
             totalEarned: 0,
-            dailyClientsServed: 0, // średnia klientów dziennie
-            performanceHistory: [], // historia wyników
+            dailyClientsServed: 0,
+            performanceHistory: [],
 
             chatHistory: [],
             negotiationState: "initial",
           };
+        }
+
+        // Lista poprzednich prac
+        function getPreviousJobs() {
+          const isEn = currentLang === "en";
+          return [
+            {
+              id: "retail",
+              name: isEn ? "Retail store" : "Sklep detaliczny",
+              years: Math.floor(1 + Math.random() * 5),
+            },
+            {
+              id: "restaurant",
+              name: isEn ? "Restaurant" : "Restauracja",
+              years: Math.floor(1 + Math.random() * 4),
+            },
+            {
+              id: "office",
+              name: isEn ? "Office work" : "Praca biurowa",
+              years: Math.floor(1 + Math.random() * 6),
+            },
+            {
+              id: "factory",
+              name: isEn ? "Factory" : "Fabryka",
+              years: Math.floor(1 + Math.random() * 8),
+            },
+            {
+              id: "hotel",
+              name: isEn ? "Hotel" : "Hotel",
+              years: Math.floor(1 + Math.random() * 4),
+            },
+            {
+              id: "bank",
+              name: isEn ? "Bank" : "Bank",
+              years: Math.floor(1 + Math.random() * 5),
+            },
+            {
+              id: "it",
+              name: isEn ? "IT company" : "Firma IT",
+              years: Math.floor(1 + Math.random() * 4),
+            },
+            {
+              id: "logistics",
+              name: isEn ? "Logistics" : "Logistyka",
+              years: Math.floor(1 + Math.random() * 5),
+            },
+            {
+              id: "sales",
+              name: isEn ? "Sales" : "Sprzedaż",
+              years: Math.floor(1 + Math.random() * 6),
+            },
+            {
+              id: "customer_service",
+              name: isEn ? "Customer service" : "Obsługa klienta",
+              years: Math.floor(1 + Math.random() * 4),
+            },
+          ];
+        }
+
+        // Role pracowników
+        function getWorkerRoles() {
+          const isEn = currentLang === "en";
+          return {
+            service: {
+              id: "service",
+              name: isEn ? "Customer Service" : "Obsługa klientów",
+              icon: "👷",
+              description: isEn
+                ? "Serves customers directly"
+                : "Bezpośrednio obsługuje klientów",
+              needsBudget: false,
+            },
+            marketing: {
+              id: "marketing",
+              name: "Marketing",
+              icon: "📢",
+              description: isEn
+                ? "Promotes business, attracts customers"
+                : "Promuje firmę, przyciąga klientów",
+              needsBudget: true,
+            },
+            pricing: {
+              id: "pricing",
+              name: isEn ? "Price Control" : "Kontrola cen",
+              icon: "💰",
+              description: isEn
+                ? "Adjusts prices based on demand"
+                : "Dostosowuje ceny do popytu",
+              needsBudget: false,
+            },
+            supervisor: {
+              id: "supervisor",
+              name: isEn ? "Supervisor" : "Kierownik",
+              icon: "👔",
+              description: isEn
+                ? "Manages other workers"
+                : "Zarządza innymi pracownikami",
+              needsBudget: false,
+            },
+          };
+        }
+
+        // System promocji dla firmy
+        function getPromotionOptions() {
+          const isEn = currentLang === "en";
+          return [
+            {
+              id: "flyers",
+              name: isEn ? "Flyers" : "Ulotki",
+              cost: 200,
+              duration: 1, // dni
+              clientBoost: 1.1, // +10% klientów
+              icon: "📄",
+            },
+            {
+              id: "social_media",
+              name: isEn ? "Social Media Ads" : "Reklama w social media",
+              cost: 500,
+              duration: 3,
+              clientBoost: 1.2,
+              icon: "📱",
+            },
+            {
+              id: "local_radio",
+              name: isEn ? "Local Radio" : "Lokalne radio",
+              cost: 1000,
+              duration: 5,
+              clientBoost: 1.3,
+              icon: "📻",
+            },
+            {
+              id: "billboard",
+              name: isEn ? "Billboard" : "Billboard",
+              cost: 2500,
+              duration: 7,
+              clientBoost: 1.4,
+              icon: "🪧",
+            },
+            {
+              id: "tv_ad",
+              name: isEn ? "TV Advertisement" : "Reklama TV",
+              cost: 5000,
+              duration: 7,
+              clientBoost: 1.6,
+              icon: "📺",
+            },
+            {
+              id: "influencer",
+              name: isEn ? "Influencer Campaign" : "Kampania z influencerem",
+              cost: 3000,
+              duration: 5,
+              clientBoost: 1.5,
+              icon: "🌟",
+            },
+          ];
         }
 
         // Tłumaczenia powodów ceny
@@ -13942,6 +14185,98 @@
             }
           </div>
 
+          <!-- WŁAŚCICIEL -->
+          <div style="background: linear-gradient(145deg, rgba(59,130,246,0.1), rgba(59,130,246,0.05)); border: 1px solid #3b82f6; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div>
+                <div style="font-weight: bold; color: #3b82f6;">👔 ${
+                  isEn ? "Owner" : "Właściciel"
+                }</div>
+                <div style="color: #888; font-size: 0.85em;">${
+                  isEn
+                    ? "Capacity: 10 clients/day"
+                    : "Zdolność: 10 klientów/dzień"
+                }</div>
+              </div>
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <span style="color: #888; font-size: 0.9em;">${
+                  isEn ? "Work here" : "Pracuj tutaj"
+                }</span>
+                <input type="checkbox" ${
+                  business.ownerWorking ? "checked" : ""
+                } onchange="toggleOwnerWorking(${index}, this.checked)" 
+                       style="width: 20px; height: 20px; cursor: pointer;">
+              </label>
+            </div>
+            ${
+              business.ownerWorking
+                ? `
+            <button onclick="startOwnerWork(${index})" style="width: 100%; padding: 12px; background: linear-gradient(145deg, #10b981, #059669); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1em;">
+              💼 ${
+                isEn
+                  ? "Work shift (3:30, earn 💰)"
+                  : "Zmiana robocza (3:30, zarabiaj 💰)"
+              }
+            </button>
+            `
+                : `
+            <div style="color: #666; font-size: 0.85em; text-align: center;">${
+              isEn
+                ? "Enable to work here and earn extra money"
+                : "Włącz aby pracować i zarabiać dodatkowe pieniądze"
+            }</div>
+            `
+            }
+          </div>
+
+          <!-- PROMOCJE -->
+          <div style="background: linear-gradient(145deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05)); border: 1px solid #f59e0b; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div style="font-weight: bold; color: #f59e0b;">📢 ${
+                isEn ? "Promotions" : "Promocje"
+              }</div>
+              ${
+                business.activePromotions &&
+                business.activePromotions.length > 0
+                  ? `<span style="background: #10b981; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8em;">${
+                      business.activePromotions.length
+                    } ${isEn ? "active" : "aktywne"}</span>`
+                  : `<span style="color: #666; font-size: 0.8em;">${
+                      isEn ? "None active" : "Brak aktywnych"
+                    }</span>`
+              }
+            </div>
+            ${
+              business.activePromotions && business.activePromotions.length > 0
+                ? `
+              <div style="margin-bottom: 10px;">
+                ${business.activePromotions
+                  .map((p) => {
+                    const promo = getPromotionOptions().find(
+                      (o) => o.id === p.id
+                    );
+                    const daysLeft = Math.ceil(
+                      (p.endTime - Date.now()) / (24 * 60 * 60 * 1000)
+                    );
+                    return `
+                    <div style="display: flex; justify-content: space-between; background: #1a1a2e; padding: 8px; border-radius: 5px; margin-bottom: 5px;">
+                      <span>${promo?.icon || "📢"} ${promo?.name || p.id}</span>
+                      <span style="color: #4ade80;">+${Math.round(
+                        (promo?.clientBoost - 1) * 100
+                      )}% • ${daysLeft}d</span>
+                    </div>
+                  `;
+                  })
+                  .join("")}
+              </div>
+            `
+                : ""
+            }
+            <button onclick="openPromotionsModal(${index})" style="width: 100%; padding: 10px; background: linear-gradient(145deg, #f59e0b, #d97706); color: white; border: none; border-radius: 8px; cursor: pointer;">
+              ${isEn ? "Buy promotion" : "Kup promocję"}
+            </button>
+          </div>
+
           <h3 style="color: #f59e0b; margin: 20px 0 10px;">👥 ${
             t.hiredWorkers
           } (${hiredWorkers.length})</h3>
@@ -14162,6 +14497,379 @@
           showToast("🔄 " + t.foundCandidates);
         }
 
+        // ========== PRACA WŁAŚCICIELA ==========
+
+        function toggleOwnerWorking(businessIndex, working) {
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
+          business.ownerWorking = working;
+          saveBusinesses(businesses);
+          renderBusinessDetail(businessIndex);
+        }
+
+        // ========== SYSTEM PROMOCJI ==========
+
+        function openPromotionsModal(businessIndex) {
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
+          const isEn = currentLang === "en";
+          const promotions = getPromotionOptions();
+
+          let modal = document.getElementById("modalPromotions");
+          if (!modal) {
+            modal = document.createElement("div");
+            modal.id = "modalPromotions";
+            modal.className = "modal";
+            modal.innerHTML = `<div class="modal-content" style="max-width: 450px;"><div id="promotionsContent"></div></div>`;
+            document.body.appendChild(modal);
+          }
+
+          const content = document.getElementById("promotionsContent");
+          content.innerHTML = `
+          <h2 style="color: #f59e0b; margin-bottom: 20px; text-align: center;">📢 ${
+            isEn ? "Buy Promotion" : "Kup Promocję"
+          }</h2>
+          <div style="color: #888; font-size: 0.9em; margin-bottom: 15px; text-align: center;">
+            ${
+              isEn
+                ? "Promotions attract more customers to your business"
+                : "Promocje przyciągają więcej klientów do Twojej firmy"
+            }
+          </div>
+          <div style="color: #4ade80; text-align: center; margin-bottom: 20px;">💰 ${money.toLocaleString()} ${getCurrency()}</div>
+          
+          <div style="max-height: 350px; overflow-y: auto;">
+            ${promotions
+              .map((promo) => {
+                const alreadyActive = business.activePromotions?.some(
+                  (p) => p.id === promo.id
+                );
+                const canAfford = money >= promo.cost;
+                return `
+                <div style="background: #1a1a2e; padding: 15px; border-radius: 10px; margin-bottom: 10px; ${
+                  alreadyActive ? "opacity: 0.5;" : ""
+                }">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <div>
+                      <span style="font-size: 1.3em;">${promo.icon}</span>
+                      <span style="font-weight: bold; margin-left: 8px;">${
+                        promo.name
+                      }</span>
+                    </div>
+                    <span style="color: ${
+                      canAfford ? "#4ade80" : "#ef4444"
+                    }; font-weight: bold;">${promo.cost.toLocaleString()} ${getCurrency()}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; color: #888; font-size: 0.85em; margin-bottom: 10px;">
+                    <span>📅 ${promo.duration} ${isEn ? "days" : "dni"}</span>
+                    <span style="color: #4ade80;">+${Math.round(
+                      (promo.clientBoost - 1) * 100
+                    )}% ${isEn ? "customers" : "klientów"}</span>
+                  </div>
+                  ${
+                    alreadyActive
+                      ? `
+                    <div style="text-align: center; color: #f59e0b; font-size: 0.9em;">✅ ${
+                      isEn ? "Already active" : "Już aktywna"
+                    }</div>
+                  `
+                      : `
+                    <button onclick="buyPromotion(${businessIndex}, '${
+                          promo.id
+                        }')" 
+                            style="width: 100%; padding: 10px; background: ${
+                              canAfford ? "#10b981" : "#333"
+                            }; color: white; border: none; border-radius: 8px; cursor: ${
+                          canAfford ? "pointer" : "not-allowed"
+                        };"
+                            ${canAfford ? "" : "disabled"}>
+                      ${
+                        canAfford
+                          ? isEn
+                            ? "Buy"
+                            : "Kup"
+                          : isEn
+                          ? "Not enough money"
+                          : "Za mało pieniędzy"
+                      }
+                    </button>
+                  `
+                  }
+                </div>
+              `;
+              })
+              .join("")}
+          </div>
+          
+          <button onclick="closeModal('modalPromotions'); renderBusinessDetail(${businessIndex});" style="width: 100%; padding: 12px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 15px;">
+            ← ${isEn ? "Back" : "Wróć"}
+          </button>
+        `;
+
+          modal.style.display = "flex";
+        }
+
+        function buyPromotion(businessIndex, promoId) {
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
+          const isEn = currentLang === "en";
+          const promo = getPromotionOptions().find((p) => p.id === promoId);
+
+          if (!promo) return;
+          if (money < promo.cost) {
+            showToast(isEn ? "❌ Not enough money!" : "❌ Za mało pieniędzy!");
+            return;
+          }
+
+          // Sprawdź czy już aktywna
+          if (!business.activePromotions) business.activePromotions = [];
+          if (business.activePromotions.some((p) => p.id === promoId)) {
+            showToast(
+              isEn
+                ? "❌ This promotion is already active!"
+                : "❌ Ta promocja jest już aktywna!"
+            );
+            return;
+          }
+
+          // Kup promocję
+          money -= promo.cost;
+          business.activePromotions.push({
+            id: promoId,
+            startTime: Date.now(),
+            endTime: Date.now() + promo.duration * 24 * 60 * 60 * 1000,
+          });
+
+          saveBusinesses(businesses);
+          saveState();
+          updateAllDisplays();
+
+          showToast(`✅ ${isEn ? "Bought" : "Kupiono"}: ${promo.name}!`);
+          openPromotionsModal(businessIndex); // Odśwież modal
+        }
+
+        // Aktualizuj promocje (usuń wygasłe)
+        function updateBusinessPromotions() {
+          const businesses = getBusinesses();
+          const now = Date.now();
+          let changed = false;
+
+          businesses.forEach((business) => {
+            if (business.activePromotions) {
+              const before = business.activePromotions.length;
+              business.activePromotions = business.activePromotions.filter(
+                (p) => p.endTime > now
+              );
+              if (business.activePromotions.length !== before) changed = true;
+            }
+          });
+
+          if (changed) saveBusinesses(businesses);
+        }
+
+        // Oblicz bonus z promocji
+        function getPromotionBonus(business) {
+          let bonus = 1.0;
+          const now = Date.now();
+          const promos = getPromotionOptions();
+
+          if (business.activePromotions) {
+            business.activePromotions.forEach((active) => {
+              if (active.endTime > now) {
+                const promo = promos.find((p) => p.id === active.id);
+                if (promo) bonus *= promo.clientBoost;
+              }
+            });
+          }
+
+          return bonus;
+        }
+
+        // Sprawdzaj promocje co minutę
+        setInterval(updateBusinessPromotions, 60000);
+
+        let ownerWorkInterval = null;
+        let ownerWorkCollected = 0;
+        let ownerWorkTimeLeft = 210; // 3:30 = 210 sekund
+        let ownerWorkCoinInterval = null;
+
+        function startOwnerWork(businessIndex) {
+          const isEn = currentLang === "en";
+
+          if (ownerWorkInterval) {
+            showToast(
+              isEn ? "❌ You're already working!" : "❌ Już pracujesz!"
+            );
+            return;
+          }
+
+          ownerWorkCollected = 0;
+          ownerWorkTimeLeft = 210;
+
+          let modal = document.getElementById("modalOwnerWork");
+          if (!modal) {
+            modal = document.createElement("div");
+            modal.id = "modalOwnerWork";
+            modal.className = "modal";
+            modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px; height: 480px; position: relative; overflow: hidden; padding: 15px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="font-size: 1.8em; font-family: monospace; color: #f59e0b;" id="ownerWorkTimer">3:30</div>
+                <div style="color: #4ade80; font-size: 1.3em; font-weight: bold;">💰 <span id="ownerWorkBonus">0</span> ${getCurrency()}</div>
+              </div>
+              
+              <div id="ownerWorkGameArea" style="position: relative; width: 100%; height: 320px; background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%); border-radius: 10px; overflow: hidden;">
+                <div id="ownerCoinsContainer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+                <div style="position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); color: #444; font-size: 0.8em;">
+                  ${
+                    isEn
+                      ? "Click falling items!"
+                      : "Klikaj spadające przedmioty!"
+                  }
+                </div>
+              </div>
+              
+              <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <div style="flex: 1; background: rgba(74,222,128,0.1); padding: 8px; border-radius: 8px; text-align: center;">
+                  <span style="font-size: 1.2em;">💰</span> <span style="color: #4ade80;">500</span>
+                </div>
+                <div style="flex: 1; background: rgba(59,130,246,0.1); padding: 8px; border-radius: 8px; text-align: center;">
+                  <span style="font-size: 1.2em;">💎</span> <span style="color: #3b82f6;">1000</span>
+                </div>
+              </div>
+              
+              <button id="ownerWorkEndBtn" style="width: 100%; padding: 10px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">
+                ❌ ${isEn ? "End shift" : "Zakończ zmianę"}
+              </button>
+            </div>
+          `;
+            document.body.appendChild(modal);
+          }
+
+          // Reset
+          document.getElementById("ownerCoinsContainer").innerHTML = "";
+          document.getElementById("ownerWorkBonus").textContent = "0";
+          document.getElementById("ownerWorkTimer").textContent = "3:30";
+          document.getElementById("ownerWorkEndBtn").onclick = () =>
+            endOwnerWork(businessIndex);
+
+          modal.style.display = "flex";
+
+          // Timer
+          ownerWorkInterval = setInterval(() => {
+            ownerWorkTimeLeft--;
+            const mins = Math.floor(ownerWorkTimeLeft / 60);
+            const secs = ownerWorkTimeLeft % 60;
+            document.getElementById(
+              "ownerWorkTimer"
+            ).textContent = `${mins}:${secs.toString().padStart(2, "0")}`;
+
+            if (ownerWorkTimeLeft <= 0) {
+              endOwnerWork(businessIndex);
+            }
+          }, 1000);
+
+          // Spadające monety i diamenty
+          ownerWorkCoinInterval = setInterval(() => {
+            spawnOwnerWorkCoin();
+          }, 900);
+        }
+
+        function spawnOwnerWorkCoin() {
+          const container = document.getElementById("ownerCoinsContainer");
+          if (!container) return;
+
+          const isDiamond = Math.random() < 0.25;
+          const value = isDiamond ? 1000 : 500;
+
+          const coin = document.createElement("div");
+          coin.innerHTML = isDiamond ? "💎" : "💰";
+          coin.style.cssText = `
+          position: absolute;
+          top: -60px;
+          left: ${Math.random() * 80 + 10}%;
+          font-size: 3em;
+          cursor: pointer;
+          z-index: 5;
+          transition: top 3s linear, transform 0.1s, filter 0.1s;
+          user-select: none;
+        `;
+
+          // Hover effect - podświetlenie
+          coin.onmouseenter = () => {
+            coin.style.transform = "scale(1.3)";
+            coin.style.filter =
+              "brightness(1.5) drop-shadow(0 0 10px " +
+              (isDiamond ? "#3b82f6" : "#4ade80") +
+              ")";
+          };
+          coin.onmouseleave = () => {
+            coin.style.transform = "scale(1)";
+            coin.style.filter = "none";
+          };
+
+          coin.onclick = () => {
+            playSound("coin");
+            ownerWorkCollected += value;
+            document.getElementById("ownerWorkBonus").textContent =
+              ownerWorkCollected.toLocaleString();
+            coin.innerHTML = `+${value}`;
+            coin.style.color = isDiamond ? "#3b82f6" : "#4ade80";
+            coin.style.fontSize = "1.5em";
+            coin.style.pointerEvents = "none";
+            coin.style.filter = "none";
+            setTimeout(() => coin.remove(), 300);
+          };
+
+          container.appendChild(coin);
+
+          // Start falling
+          setTimeout(() => {
+            coin.style.top = "calc(100% + 60px)";
+          }, 50);
+
+          // Remove after fall
+          setTimeout(() => {
+            if (coin.parentNode) coin.remove();
+          }, 3500);
+        }
+
+        function endOwnerWork(businessIndex) {
+          if (ownerWorkInterval) {
+            clearInterval(ownerWorkInterval);
+            ownerWorkInterval = null;
+          }
+          if (ownerWorkCoinInterval) {
+            clearInterval(ownerWorkCoinInterval);
+            ownerWorkCoinInterval = null;
+          }
+
+          const isEn = currentLang === "en";
+
+          if (ownerWorkCollected > 0) {
+            money += ownerWorkCollected;
+            saveState();
+            updateAllDisplays();
+            showToast(
+              `✅ ${
+                isEn ? "Earned" : "Zarobiono"
+              }: ${ownerWorkCollected.toLocaleString()} ${getCurrency()}!`
+            );
+          } else {
+            showToast(
+              isEn ? "😔 No earnings this shift" : "😔 Nic nie zarobiono"
+            );
+          }
+
+          const modal = document.getElementById("modalOwnerWork");
+          if (modal) modal.style.display = "none";
+
+          ownerWorkCollected = 0;
+          ownerWorkTimeLeft = 210;
+
+          renderBusinessDetail(businessIndex);
+        }
+
         // ========== SYSTEM CZATU Z AI (PRACOWNICY/KLIENCI) ==========
 
         function negotiateWithWorker(businessIndex, workerId) {
@@ -14213,7 +14921,7 @@
           }">
             <div style="display: inline-block; max-width: 80%; padding: 10px 15px; border-radius: 15px; background: ${
               msg.from === "player" ? "#3b82f6" : "#333"
-            };">
+            }; white-space: pre-line;">
               ${msg.text}
             </div>
           </div>
@@ -14241,60 +14949,65 @@
           const dailySalary =
             worker.expectedDailySalary || Math.floor(worker.expectedSalary / 7);
           const weeklySalary = dailySalary * 7;
+          const roles = getWorkerRoles();
+          const preferredRoleInfo =
+            roles[worker.preferredRole] || roles.service;
 
           // Stan negocjacji
           if (worker.negotiationState === "initial") {
             if (worker.chatHistory.length === 0) {
-              // Powitanie
-              const greetings = [
-                isEn
-                  ? `Hello! I'm ${
-                      worker.name
-                    }, applying for ${worker.positionName.toLowerCase()}.`
-                  : `Dzień dobry! Jestem ${
-                      worker.name
-                    }, aplikuję na stanowisko ${worker.positionName.toLowerCase()}.`,
-              ];
-              worker.chatHistory.push({ from: "worker", text: greetings[0] });
+              // Powitanie z informacją o poprzedniej pracy i preferowanej roli
+              let greeting = isEn
+                ? `Hello! I'm ${
+                    worker.name
+                  }, applying for ${worker.positionName.toLowerCase()}.`
+                : `Dzień dobry! Jestem ${
+                    worker.name
+                  }, aplikuję na stanowisko ${worker.positionName.toLowerCase()}.`;
+              worker.chatHistory.push({ from: "worker", text: greeting });
 
-              // Powody ceny
-              let reasonsText = isEn
-                ? "My salary expectations are based on:"
-                : "Moje oczekiwania płacowe wynikają z:";
-              if (worker.priceReasons && worker.priceReasons.length > 0) {
-                worker.priceReasons.forEach((r) => {
-                  reasonsText += `\n• ${getPriceReasonText(r.id)} (${r.mod})`;
+              // Poprzednia praca
+              if (worker.previousJob) {
+                const prevJobText = isEn
+                  ? `📋 Previous work: ${worker.previousJob.name} (${
+                      worker.previousJob.years
+                    } ${worker.previousJob.years === 1 ? "year" : "years"})`
+                  : `📋 Poprzednia praca: ${worker.previousJob.name} (${
+                      worker.previousJob.years
+                    } ${
+                      worker.previousJob.years === 1
+                        ? "rok"
+                        : worker.previousJob.years < 5
+                        ? "lata"
+                        : "lat"
+                    })`;
+                worker.chatHistory.push({ from: "worker", text: prevJobText });
+              } else {
+                worker.chatHistory.push({
+                  from: "worker",
+                  text: isEn
+                    ? "📋 This would be my first job."
+                    : "📋 To byłaby moja pierwsza praca.",
                 });
               }
-              worker.chatHistory.push({ from: "worker", text: reasonsText });
 
-              // Oczekiwania
-              const expectText = isEn
-                ? `I expect: ${dailySalary} ${getCurrency()}/day (${weeklySalary} ${getCurrency()}/week) + ${
-                    worker.bonusPercent
-                  }% commission from sales.`
-                : `Oczekuję: ${dailySalary} ${getCurrency()}/dzień (${weeklySalary} ${getCurrency()}/tydzień) + ${
-                    worker.bonusPercent
-                  }% prowizji od sprzedaży.`;
-              worker.chatHistory.push({ from: "worker", text: expectText });
+              // Preferowana rola
+              const roleText = isEn
+                ? `${preferredRoleInfo.icon} I'd like to work as: ${preferredRoleInfo.name}\n${preferredRoleInfo.description}`
+                : `${preferredRoleInfo.icon} Chciałbym pracować jako: ${preferredRoleInfo.name}\n${preferredRoleInfo.description}`;
+              worker.chatHistory.push({ from: "worker", text: roleText });
 
-              // Bonus za podpis jeśli oczekuje
-              if (worker.signingBonus > 0) {
-                const bonusText = isEn
-                  ? `I would also expect a signing bonus of ${
-                      worker.signingBonus
+              // Jeśli rola wymaga budżetu
+              if (preferredRoleInfo.needsBudget && worker.expectedBudget > 0) {
+                const budgetText = isEn
+                  ? `💵 For this role I would need a budget of about ${
+                      worker.expectedBudget
                     } ${getCurrency()}.`
-                  : `Oczekuję również premii za podpisanie umowy: ${
-                      worker.signingBonus
+                  : `💵 Do tej roli potrzebowałbym budżetu około ${
+                      worker.expectedBudget
                     } ${getCurrency()}.`;
-                worker.chatHistory.push({ from: "worker", text: bonusText });
+                worker.chatHistory.push({ from: "worker", text: budgetText });
               }
-
-              // Oczekiwane wyniki
-              const perfText = isEn
-                ? `I can handle about ${worker.expectedPerformance} clients per day.`
-                : `Mogę obsłużyć około ${worker.expectedPerformance} klientów dziennie.`;
-              worker.chatHistory.push({ from: "worker", text: perfText });
 
               saveBusinesses(businesses);
             }
@@ -14317,12 +15030,75 @@
               .join("");
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-            // Opcje - zgódź się lub omów szczegóły
+            // Opcje - najpierw ustal rolę
+            optionsDiv.innerHTML = `
+            <div style="background: #1a1a2e; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+              <div style="color: #888; font-size: 0.85em; margin-bottom: 8px;">${
+                isEn
+                  ? "Select role for this worker:"
+                  : "Wybierz rolę dla tego pracownika:"
+              }</div>
+              <select id="selectWorkerRole" style="width: 100%; padding: 10px; background: #333; border: 1px solid #555; border-radius: 5px; color: white;">
+                ${Object.values(roles)
+                  .map(
+                    (r) => `
+                  <option value="${r.id}" ${
+                      r.id === worker.preferredRole ? "selected" : ""
+                    }>
+                    ${r.icon} ${r.name} ${r.needsBudget ? "(💵)" : ""}
+                  </option>
+                `
+                  )
+                  .join("")}
+              </select>
+            </div>
+            <button onclick="confirmWorkerRole(${businessIndex}, '${workerId}')" style="padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+              ✅ ${
+                isEn ? "Confirm role & continue" : "Potwierdź rolę i kontynuuj"
+              }
+            </button>
+            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'reject')" style="padding: 10px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">
+              ❌ ${t.rejectBtn}
+            </button>
+          `;
+          } else if (worker.negotiationState === "role_confirmed") {
+            // Rola potwierdzona - teraz negocjuj warunki
             const currentOffer = worker.offerDailySalary || dailySalary;
             const currentBonus =
               worker.offerBonusPercent || worker.bonusPercent;
+            const assignedRole = roles[worker.assignedRole] || roles.service;
+
+            // Odśwież wiadomości
+            messagesDiv.innerHTML = worker.chatHistory
+              .map(
+                (msg) => `
+            <div style="margin-bottom: 12px; ${
+              msg.from === "player" ? "text-align: right;" : ""
+            }">
+              <div style="display: inline-block; max-width: 80%; padding: 10px 15px; border-radius: 15px; background: ${
+                msg.from === "player" ? "#3b82f6" : "#333"
+              }; white-space: pre-line;">
+                ${msg.text}
+              </div>
+            </div>
+          `
+              )
+              .join("");
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
             optionsDiv.innerHTML = `
+            <div style="background: rgba(59,130,246,0.1); border: 1px solid #3b82f6; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+              <span style="color: #3b82f6;">${assignedRole.icon} ${
+              isEn ? "Role" : "Rola"
+            }: ${assignedRole.name}</span>
+              ${
+                worker.assignedBudget > 0
+                  ? `<span style="color: #f59e0b; margin-left: 10px;">💵 ${
+                      worker.assignedBudget
+                    } ${getCurrency()}</span>`
+                  : ""
+              }
+            </div>
             <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'accept_terms')" style="padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
               ✅ ${
                 isEn ? "Accept terms" : "Zgódź się na warunki"
@@ -14332,6 +15108,61 @@
               📋 ${isEn ? "Discuss details" : "Omów szczegóły"}
             </button>
             <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'reject')" style="padding: 12px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer;">
+              ❌ ${t.rejectBtn}
+            </button>
+          `;
+          } else if (worker.negotiationState === "budget_negotiation") {
+            // Negocjacja budżetu dla ról które go potrzebują
+            const expectedBudget = worker.expectedBudget || 1000;
+            const currentBudget = worker.offerBudget || expectedBudget;
+
+            // Odśwież wiadomości
+            messagesDiv.innerHTML = worker.chatHistory
+              .map(
+                (msg) => `
+            <div style="margin-bottom: 12px; ${
+              msg.from === "player" ? "text-align: right;" : ""
+            }">
+              <div style="display: inline-block; max-width: 80%; padding: 10px 15px; border-radius: 15px; background: ${
+                msg.from === "player" ? "#3b82f6" : "#333"
+              }; white-space: pre-line;">
+                ${msg.text}
+              </div>
+            </div>
+          `
+              )
+              .join("");
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            optionsDiv.innerHTML = `
+            <div style="background: #1a1a2e; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+              <h4 style="margin-bottom: 10px; color: #f59e0b;">💵 ${
+                isEn ? "Budget Assignment" : "Przydziel Budżet"
+              }</h4>
+              <div style="color: #888; font-size: 0.85em; margin-bottom: 10px;">
+                ${
+                  isEn
+                    ? "This worker needs a budget for their role. The budget comes from your account and can only be spent on their assigned tasks."
+                    : "Ten pracownik potrzebuje budżetu do swojej roli. Budżet pochodzi z Twojego konta i może być wydany tylko na przypisane zadania."
+                }
+              </div>
+              <div style="margin-bottom: 10px;">
+                <label style="color: #888; font-size: 0.85em;">${
+                  isEn ? "Budget amount" : "Kwota budżetu"
+                } (${
+              isEn ? "suggested" : "sugerowane"
+            }: ${expectedBudget})</label>
+                <input type="number" id="offerBudget" value="${currentBudget}" min="0" max="50000"
+                       style="width: 100%; padding: 10px; background: #333; border: 1px solid #555; border-radius: 5px; color: white; margin-top: 5px;">
+              </div>
+              <div style="color: #666; font-size: 0.8em;">💰 ${
+                isEn ? "Your balance" : "Twoje saldo"
+              }: ${money.toLocaleString()} ${getCurrency()}</div>
+            </div>
+            <button onclick="confirmBudget(${businessIndex}, '${workerId}')" style="padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+              ✅ ${isEn ? "Confirm budget" : "Potwierdź budżet"}
+            </button>
+            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'reject')" style="padding: 10px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">
               ❌ ${t.rejectBtn}
             </button>
           `;
@@ -14548,6 +15379,220 @@
             openModal("businessDetail");
             renderBusinessDetail(businessIndex);
           }, 1000);
+        }
+
+        // Potwierdź budżet pracownika
+        function confirmBudget(businessIndex, workerId) {
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
+          const worker = business.workers.find((w) => w.id === workerId);
+          if (!worker) return;
+          const isEn = currentLang === "en";
+
+          const budgetAmount =
+            parseInt(document.getElementById("offerBudget")?.value) || 0;
+
+          if (budgetAmount > money) {
+            showToast(
+              isEn
+                ? "❌ Not enough money for this budget!"
+                : "❌ Nie stać Cię na taki budżet!"
+            );
+            return;
+          }
+
+          worker.assignedBudget = budgetAmount;
+          worker.offerBudget = budgetAmount;
+
+          // Wiadomość gracza
+          worker.chatHistory.push({
+            from: "player",
+            text: isEn
+              ? `I'm assigning you a budget of ${budgetAmount} ${getCurrency()}.`
+              : `Przyznaję Ci budżet w wysokości ${budgetAmount} ${getCurrency()}.`,
+          });
+
+          // Reakcja pracownika
+          const expectedBudget = worker.expectedBudget || 1000;
+          if (budgetAmount >= expectedBudget) {
+            worker.chatHistory.push({
+              from: "worker",
+              text: isEn
+                ? "That's a good budget to start with!"
+                : "To dobry budżet na początek!",
+            });
+          } else if (budgetAmount >= expectedBudget * 0.5) {
+            worker.chatHistory.push({
+              from: "worker",
+              text: isEn
+                ? "It's less than I hoped, but I'll make it work."
+                : "To mniej niż się spodziewałem, ale dam radę.",
+            });
+          } else if (budgetAmount > 0) {
+            worker.chatHistory.push({
+              from: "worker",
+              text: isEn
+                ? "That's quite limited, but I'll do what I can."
+                : "To dość ograniczony budżet, ale zrobię co mogę.",
+            });
+          } else {
+            worker.chatHistory.push({
+              from: "worker",
+              text: isEn
+                ? "No budget? That will make my job very difficult..."
+                : "Bez budżetu? To bardzo utrudni moją pracę...",
+            });
+          }
+
+          // Przejdź do negocjacji płacy
+          const dailySalary =
+            worker.expectedDailySalary || Math.floor(worker.expectedSalary / 7);
+
+          let reasonsText = isEn
+            ? "Now, about my salary:"
+            : "Teraz co do mojej pensji:";
+          if (worker.priceReasons && worker.priceReasons.length > 0) {
+            worker.priceReasons.forEach((r) => {
+              reasonsText += `\n• ${getPriceReasonText(r.id)} (${r.mod})`;
+            });
+          }
+          worker.chatHistory.push({ from: "worker", text: reasonsText });
+
+          worker.chatHistory.push({
+            from: "worker",
+            text: isEn
+              ? `I expect: ${dailySalary} ${getCurrency()}/day + ${
+                  worker.bonusPercent
+                }% commission.`
+              : `Oczekuję: ${dailySalary} ${getCurrency()}/dzień + ${
+                  worker.bonusPercent
+                }% prowizji.`,
+          });
+
+          if (worker.signingBonus > 0) {
+            worker.chatHistory.push({
+              from: "worker",
+              text: isEn
+                ? `Plus a signing bonus of ${
+                    worker.signingBonus
+                  } ${getCurrency()}.`
+                : `Plus bonus za podpis: ${
+                    worker.signingBonus
+                  } ${getCurrency()}.`,
+            });
+          }
+
+          worker.negotiationState = "role_confirmed";
+          saveBusinesses(businesses);
+          continueWorkerNegotiation(businessIndex, workerId);
+        }
+
+        // Potwierdź rolę pracownika
+        function confirmWorkerRole(businessIndex, workerId) {
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
+          const worker = business.workers.find((w) => w.id === workerId);
+          if (!worker) return;
+          const isEn = currentLang === "en";
+
+          const selectedRole =
+            document.getElementById("selectWorkerRole")?.value || "service";
+          const roles = getWorkerRoles();
+          const roleInfo = roles[selectedRole];
+
+          worker.assignedRole = selectedRole;
+
+          // Wiadomość gracza
+          worker.chatHistory.push({
+            from: "player",
+            text: isEn
+              ? `I'd like you to work as ${roleInfo.name}.`
+              : `Chciałbym, żebyś pracował jako ${roleInfo.name}.`,
+          });
+
+          // Reakcja pracownika
+          if (selectedRole === worker.preferredRole) {
+            worker.chatHistory.push({
+              from: "worker",
+              text: isEn
+                ? "Perfect, that's exactly what I wanted!"
+                : "Świetnie, dokładnie o to mi chodziło!",
+            });
+          } else {
+            worker.chatHistory.push({
+              from: "worker",
+              text: isEn
+                ? "That's not exactly what I had in mind, but I can adapt."
+                : "To nie do końca to, co miałem na myśli, ale mogę się dostosować.",
+            });
+          }
+
+          // Jeśli rola wymaga budżetu - pytaj o budżet
+          if (roleInfo.needsBudget) {
+            const expectedBudget = worker.expectedBudget || 1000;
+            worker.chatHistory.push({
+              from: "worker",
+              text: isEn
+                ? `For this role I'll need a budget. I'd suggest starting with ${expectedBudget} ${getCurrency()}.`
+                : `Do tej roli będę potrzebować budżetu. Proponuję zacząć od ${expectedBudget} ${getCurrency()}.`,
+            });
+            worker.negotiationState = "budget_negotiation";
+          } else {
+            // Przejdź do negocjacji warunków
+            const dailySalary =
+              worker.expectedDailySalary ||
+              Math.floor(worker.expectedSalary / 7);
+
+            // Powody ceny
+            let reasonsText = isEn
+              ? "Now, about my salary expectations:"
+              : "Teraz co do moich oczekiwań płacowych:";
+            if (worker.priceReasons && worker.priceReasons.length > 0) {
+              worker.priceReasons.forEach((r) => {
+                reasonsText += `\n• ${getPriceReasonText(r.id)} (${r.mod})`;
+              });
+            }
+            worker.chatHistory.push({ from: "worker", text: reasonsText });
+
+            worker.chatHistory.push({
+              from: "worker",
+              text: isEn
+                ? `I expect: ${dailySalary} ${getCurrency()}/day + ${
+                    worker.bonusPercent
+                  }% commission.`
+                : `Oczekuję: ${dailySalary} ${getCurrency()}/dzień + ${
+                    worker.bonusPercent
+                  }% prowizji.`,
+            });
+
+            if (worker.signingBonus > 0) {
+              worker.chatHistory.push({
+                from: "worker",
+                text: isEn
+                  ? `Plus a signing bonus of ${
+                      worker.signingBonus
+                    } ${getCurrency()}.`
+                  : `Plus bonus za podpis: ${
+                      worker.signingBonus
+                    } ${getCurrency()}.`,
+              });
+            }
+
+            // Tylko dla obsługi klientów podaj wydajność
+            if (selectedRole === "service") {
+              worker.chatHistory.push({
+                from: "worker",
+                text: isEn
+                  ? `I can handle about ${worker.expectedPerformance} clients per day.`
+                  : `Mogę obsłużyć około ${worker.expectedPerformance} klientów dziennie.`,
+              });
+            }
+
+            worker.negotiationState = "role_confirmed";
+          }
+
+          saveBusinesses(businesses);
+          continueWorkerNegotiation(businessIndex, workerId);
         }
 
         function respondToWorker(businessIndex, workerId, response) {
@@ -15202,8 +16247,11 @@
             positive: 0,
             negative: 0,
             neutral: 0,
+            angry: 0,
           };
           const repChange = report.reputationChange || 0;
+          const unserved = report.unservedClients || 0;
+          const capacity = report.capacity || 0;
 
           content.innerHTML = `
           <div style="background: #1a1a2e; border-radius: 10px; padding: 20px; font-family: 'Courier New', monospace;">
@@ -15215,6 +16263,48 @@
                 report.businessName
               }</div>
               <div style="color: #666; font-size: 0.85em;">${new Date().toLocaleDateString()}</div>
+              ${
+                report.ownerWorking
+                  ? `<div style="color: #3b82f6; font-size: 0.8em; margin-top: 5px;">👔 ${
+                      isEn ? "Owner working" : "Właściciel pracuje"
+                    }</div>`
+                  : ""
+              }
+            </div>
+            
+            <!-- KLIENCI -->
+            <div style="border-bottom: 1px dashed #444; padding-bottom: 10px; margin-bottom: 10px;">
+              <div style="color: #4ade80; font-weight: bold; margin-bottom: 8px;">👥 ${
+                isEn ? "CUSTOMERS" : "KLIENCI"
+              }</div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span>${isEn ? "Potential" : "Potencjalnych"}:</span>
+                <span>${report.potentialClients || report.clients}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span>${isEn ? "Capacity" : "Zdolność obsługi"}:</span>
+                <span>${capacity}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="color: #4ade80;">✅ ${
+                  isEn ? "Served" : "Obsłużonych"
+                }:</span>
+                <span style="color: #4ade80; font-weight: bold;">${
+                  report.clients
+                }</span>
+              </div>
+              ${
+                unserved > 0
+                  ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span style="color: #ef4444;">❌ ${
+                  isEn ? "Unserved" : "Nieobsłużonych"
+                }:</span>
+                <span style="color: #ef4444; font-weight: bold;">${unserved}</span>
+              </div>
+              `
+                  : ""
+              }
             </div>
             
             <!-- PRZYCHÓD -->
@@ -15223,9 +16313,7 @@
                 isEn ? "INCOME" : "PRZYCHÓD"
               }</div>
               <div style="display: flex; justify-content: space-between;">
-                <span>👥 ${isEn ? "Clients" : "Klienci"}: ${
-            report.clients
-          }</span>
+                <span>${isEn ? "From clients" : "Od klientów"}:</span>
                 <span style="color: #4ade80;">+${report.income.toLocaleString()} ${getCurrency()}</span>
               </div>
             </div>
@@ -15241,7 +16329,7 @@
                   <div style="color: #4ade80; font-weight: bold;">${
                     reviews.positive
                   }</div>
-                  <div style="font-size: 0.7em; color: #888;">${
+                  <div style="font-size: 0.65em; color: #888;">${
                     isEn ? "Positive" : "Pozytywne"
                   }</div>
                 </div>
@@ -15250,19 +16338,34 @@
                   <div style="color: #888; font-weight: bold;">${
                     reviews.neutral
                   }</div>
-                  <div style="font-size: 0.7em; color: #888;">${
+                  <div style="font-size: 0.65em; color: #888;">${
                     isEn ? "Neutral" : "Neutralne"
                   }</div>
                 </div>
                 <div>
                   <div style="font-size: 1.2em;">😠</div>
                   <div style="color: #ef4444; font-weight: bold;">${
-                    reviews.negative
+                    reviews.negative - (reviews.angry || 0)
                   }</div>
-                  <div style="font-size: 0.7em; color: #888;">${
+                  <div style="font-size: 0.65em; color: #888;">${
                     isEn ? "Negative" : "Negatywne"
                   }</div>
                 </div>
+                ${
+                  reviews.angry > 0
+                    ? `
+                <div>
+                  <div style="font-size: 1.2em;">🤬</div>
+                  <div style="color: #dc2626; font-weight: bold;">${
+                    reviews.angry
+                  }</div>
+                  <div style="font-size: 0.65em; color: #888;">${
+                    isEn ? "Angry" : "Wściekli"
+                  }</div>
+                </div>
+                `
+                    : ""
+                }
               </div>
               <div style="text-align: center; margin-top: 8px; padding: 5px; background: rgba(139,92,246,0.1); border-radius: 5px;">
                 <span>${isEn ? "Reputation" : "Reputacja"}: </span>
@@ -15281,9 +16384,11 @@
               <div style="color: #f59e0b; font-weight: bold; margin-bottom: 8px;">👷 ${
                 isEn ? "WORKERS" : "PRACOWNICY"
               }</div>
-              ${report.workers
-                .map(
-                  (w) => `
+              ${
+                report.workers.length > 0
+                  ? report.workers
+                      .map(
+                        (w) => `
                 <div style="display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 3px;">
                   <span>${w.name}</span>
                   <span style="color: #ef4444;">-${
@@ -15292,16 +16397,25 @@
                 </div>
                 <div style="font-size: 0.7em; color: #666; margin-bottom: 5px; margin-left: 10px;">
                   💰 ${isEn ? "Salary" : "Pensja"}: ${w.salary} + 🎁 ${
-                    isEn ? "Bonus" : "Prowizja"
-                  }: ${w.bonus}
+                          isEn ? "Bonus" : "Prowizja"
+                        }: ${w.bonus}
                 </div>
               `
-                )
-                .join("")}
+                      )
+                      .join("")
+                  : `<div style="color: #888; font-size: 0.9em;">${
+                      isEn ? "No hired workers" : "Brak zatrudnionych"
+                    }</div>`
+              }
+              ${
+                report.workers.length > 0
+                  ? `
               <div style="display: flex; justify-content: space-between; margin-top: 5px; font-weight: bold; border-top: 1px solid #333; padding-top: 5px;">
                 <span>${isEn ? "Salaries" : "Pensje"}:</span>
                 <span style="color: #ef4444;">-${totalSalaries.toLocaleString()} ${getCurrency()}</span>
-              </div>
+              </div>`
+                  : ""
+              }
               <div style="display: flex; justify-content: space-between; font-weight: bold;">
                 <span>${isEn ? "Commissions" : "Prowizje"}:</span>
                 <span style="color: #ef4444;">-${report.bonusesPaid.toLocaleString()} ${getCurrency()}</span>
@@ -15883,85 +16997,144 @@
           const t = translations[currentLang] || translations.en;
           const isEn = currentLang === "en";
 
+          // Aktualizuj promocje
+          updateBusinessPromotions();
+
           const hiredWorkers = business.workers.filter((w) => w.hired);
-          if (hiredWorkers.length === 0) return;
+          const serviceWorkers = hiredWorkers.filter(
+            (w) => (w.assignedRole || "service") === "service"
+          );
+          const marketingWorkers = hiredWorkers.filter(
+            (w) => w.assignedRole === "marketing"
+          );
+          const ownerWorking = business.ownerWorking || false;
 
-          // ========== OBLICZ ŚREDNIĄ JAKOŚĆ PRACOWNIKÓW ==========
+          // Jeśli nikt nie obsługuje - firma nie działa
+          if (serviceWorkers.length === 0 && !ownerWorking) {
+            const promoBonus = getPromotionBonus(business);
+            const potentialClients = Math.floor(
+              business.clientsPerDay *
+                ((business.reputation || 50) / 50) *
+                promoBonus *
+                0.3
+            );
+            if (potentialClients > 0) {
+              const negReviews = Math.floor(potentialClients * 0.5);
+              business.reputation = Math.max(
+                0,
+                (business.reputation || 50) - negReviews
+              );
+              showToast(
+                `⚠️ ${business.name}: ${
+                  isEn
+                    ? `${potentialClients} customers left unserved!`
+                    : `${potentialClients} klientów nieobsłużonych!`
+                }`
+              );
+            }
+            business.lastDayProcessed = Date.now();
+            saveBusinesses(businesses);
+            return;
+          }
+
+          // ========== OBLICZ ZDOLNOŚĆ OBSŁUGI ==========
+          const OWNER_CAPACITY = 10;
+          const WORKER_CAPACITY = 15;
+
+          let totalCapacity = 0;
           let totalQuality = 0;
-          let totalSpeed = 0;
           let totalErrorRate = 0;
+          let workerCount = 0;
 
-          hiredWorkers.forEach((w) => {
-            // Cechy z osobowości
+          // Właściciel pracuje
+          if (ownerWorking) {
+            totalCapacity += OWNER_CAPACITY;
+            totalQuality += 1.0;
+            totalErrorRate += 0.05;
+            workerCount++;
+          }
+
+          // Tylko pracownicy obsługi liczą się do zdolności
+          serviceWorkers.forEach((w) => {
             const personality = w.personality || {};
+            const workerCapacity = Math.floor(
+              WORKER_CAPACITY * (personality.speedMod || 1)
+            );
+            totalCapacity += workerCapacity;
             totalQuality += personality.qualityMod || 1;
-            totalSpeed += personality.speedMod || 1;
             totalErrorRate += personality.errorRate || 0.1;
+            workerCount++;
           });
 
-          const avgQuality = totalQuality / hiredWorkers.length;
-          const avgSpeed = totalSpeed / hiredWorkers.length;
-          const avgErrorRate = totalErrorRate / hiredWorkers.length;
+          const avgQuality = workerCount > 0 ? totalQuality / workerCount : 1;
+          const avgErrorRate =
+            workerCount > 0 ? totalErrorRate / workerCount : 0.1;
 
-          // ========== KLIENCI - zależni od reputacji ==========
+          // ========== KLIENCI - zależni od reputacji, promocji i marketingu ==========
           const reputationBonus = (business.reputation || 50) / 50; // 0-2x
-          const baseClients =
-            business.clientsPerDay * avgSpeed * reputationBonus;
-          const clientCount = Math.floor(
-            baseClients * (0.7 + Math.random() * 0.6)
+          const promoBonus = getPromotionBonus(business);
+
+          // Marketing pracowników dodaje bonus (wydają budżet)
+          let marketingBonus = 1.0;
+          marketingWorkers.forEach((w) => {
+            if (w.assignedBudget > 0 && w.budgetSpent < w.assignedBudget) {
+              // Wydaj część budżetu na marketing dzienny
+              const dailySpend = Math.min(
+                100,
+                w.assignedBudget - w.budgetSpent
+              );
+              w.budgetSpent = (w.budgetSpent || 0) + dailySpend;
+              marketingBonus += dailySpend / 1000; // +10% za każde 100 wydane
+            }
+          });
+
+          const potentialClients = Math.floor(
+            business.clientsPerDay *
+              reputationBonus *
+              promoBonus *
+              marketingBonus *
+              (0.8 + Math.random() * 0.4)
           );
+
+          // Obsłużeni klienci = min(potencjalni, zdolność)
+          const servedClients = Math.min(potentialClients, totalCapacity);
+          const unservedClients = potentialClients - servedClients;
 
           let dayIncome = 0;
           let positiveReviews = 0;
           let negativeReviews = 0;
-          const clientReviews = [];
 
-          // ========== SYMULUJ KAŻDEGO KLIENTA ==========
-          for (let i = 0; i < clientCount; i++) {
+          // ========== OBSŁUŻENI KLIENCI ==========
+          for (let i = 0; i < servedClients; i++) {
             const clientSpend = Math.floor(
               business.avgIncome * avgQuality * (0.5 + Math.random())
             );
             dayIncome += clientSpend;
 
-            // Czy pracownik popełnił błąd przy tym kliencie?
             const madeError = Math.random() < avgErrorRate;
 
-            // Opinia klienta
-            let satisfaction;
             if (madeError) {
-              // Błąd - duża szansa na negatywną opinię
-              satisfaction = Math.random() < 0.7 ? "negative" : "neutral";
+              if (Math.random() < 0.7) negativeReviews++;
             } else {
-              // Bez błędu - szansa na pozytywną zależy od jakości
-              const positiveChance = 0.3 + (avgQuality - 1) * 0.4; // Wyższa jakość = więcej pozytywnych
+              const positiveChance = 0.3 + (avgQuality - 1) * 0.4;
               if (Math.random() < positiveChance) {
-                satisfaction = "positive";
-              } else if (Math.random() < 0.1) {
-                satisfaction = "negative"; // Czasem klient jest po prostu niezadowolony
-              } else {
-                satisfaction = "neutral";
+                positiveReviews++;
+              } else if (Math.random() < 0.05) {
+                negativeReviews++;
               }
             }
-
-            if (satisfaction === "positive") positiveReviews++;
-            if (satisfaction === "negative") negativeReviews++;
           }
 
+          // ========== NIEOBSŁUŻENI KLIENCI - NEGATYWNE OPINIE ==========
+          const angryClients = Math.floor(unservedClients * 0.6);
+          negativeReviews += angryClients;
+
           // ========== AKTUALIZUJ REPUTACJĘ ==========
-          const reputationChange = positiveReviews * 2 - negativeReviews * 5;
+          const reputationChange = positiveReviews * 2 - negativeReviews * 3;
           business.reputation = Math.max(
             0,
             Math.min(100, (business.reputation || 50) + reputationChange)
           );
-
-          // Zapisz opinie do pokazania
-          if (positiveReviews > 0 || negativeReviews > 0) {
-            clientReviews.push({
-              positive: positiveReviews,
-              negative: negativeReviews,
-              neutral: clientCount - positiveReviews - negativeReviews,
-            });
-          }
 
           // ========== WYPŁATY PRACOWNIKÓW (DZIENNE) ==========
           let salariesPaid = 0;
@@ -15969,13 +17142,11 @@
           const workerReports = [];
 
           hiredWorkers.forEach((w) => {
-            // Dzienna pensja = tygodniówka / 7
             const dailySalary = Math.floor(
               (w.currentSalary || w.expectedSalary) / 7
             );
             salariesPaid += dailySalary;
 
-            // Prowizja od przychodu
             const workerBonus = Math.floor(
               (dayIncome * (w.bonusPercent / 100)) / hiredWorkers.length
             );
@@ -15995,14 +17166,16 @@
 
           // ========== RACHUNKI DZIENNE ==========
           const electricityCost = Math.floor(
-            50 + clientCount * 3 + Math.random() * 30
+            50 + servedClients * 2 + Math.random() * 30
           );
           const waterCost = Math.floor(
-            20 + clientCount * 1.5 + Math.random() * 15
+            20 + servedClients * 1 + Math.random() * 15
           );
-          const gasCost = Math.floor(30 + clientCount * 2 + Math.random() * 20);
+          const gasCost = Math.floor(
+            30 + servedClients * 1.5 + Math.random() * 20
+          );
           const internetCost = 50;
-          const rentCost = Math.floor(business.startCost * 0.002);
+          const rentCost = Math.floor(business.startCost * 0.001);
           const totalBills =
             electricityCost + waterCost + gasCost + internetCost + rentCost;
 
@@ -16015,9 +17188,7 @@
             (business.totalExpenses || 0) + totalExpenses;
           business.lastDayProcessed = Date.now();
 
-          // Sprawdź czy stać na wydatki
           if (money + netIncome < 0) {
-            // Nie stać - firma generuje dług
             business.debt = (business.debt || 0) + Math.abs(netIncome);
             showToast(
               `⚠️ ${business.name}: ${
@@ -16028,7 +17199,6 @@
             );
           }
 
-          // Dodaj do pieniędzy gracza
           money += netIncome;
 
           saveBusinesses(businesses);
@@ -16038,7 +17208,11 @@
           // Pokaż dzienny raport
           showDayReport({
             businessName: business.name,
-            clients: clientCount,
+            clients: servedClients,
+            unservedClients: unservedClients,
+            potentialClients: potentialClients,
+            capacity: totalCapacity,
+            ownerWorking: ownerWorking,
             income: dayIncome,
             workers: workerReports,
             salariesPaid: salariesPaid,
@@ -16046,7 +17220,11 @@
             reviews: {
               positive: positiveReviews,
               negative: negativeReviews,
-              neutral: clientCount - positiveReviews - negativeReviews,
+              neutral:
+                servedClients -
+                positiveReviews -
+                Math.min(negativeReviews, servedClients),
+              angry: angryClients,
             },
             reputationChange: reputationChange,
             newReputation: business.reputation,
