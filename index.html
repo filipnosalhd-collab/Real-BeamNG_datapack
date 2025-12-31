@@ -11156,6 +11156,11 @@
             checkPendingTaxReport();
           }, 1000);
 
+          // Sprawdź oczekujące raporty firm
+          setTimeout(() => {
+            checkPendingBusinessReports();
+          }, 2000);
+
           // Sprawdź czy zalogowany - jeśli nie, pokaż ekran logowania
           if (!checkRequireLogin()) {
             // Sprawdź zaproszenie do znajomych
@@ -12849,7 +12854,7 @@
             renderOnlineAccount();
           }
           if (type === "notifications") {
-            renderNotifications();
+            renderWorkerNotifications();
           }
         }
 
@@ -13800,35 +13805,61 @@
                 ? "Serves customers directly"
                 : "Bezpośrednio obsługuje klientów",
               needsBudget: false,
+              availableIn: "all", // wszystkie firmy
             },
             marketing: {
               id: "marketing",
               name: "Marketing",
               icon: "📢",
               description: isEn
-                ? "Promotes business, attracts customers"
-                : "Promuje firmę, przyciąga klientów",
+                ? "Buys promotions automatically (10-15min research)"
+                : "Automatycznie kupuje promocje (10-15min research)",
               needsBudget: true,
+              availableIn: "all",
             },
             pricing: {
               id: "pricing",
               name: isEn ? "Price Control" : "Kontrola cen",
               icon: "💰",
               description: isEn
-                ? "Adjusts prices based on demand"
-                : "Dostosowuje ceny do popytu",
+                ? "Adjusts prices based on reviews"
+                : "Dostosowuje ceny na podstawie opinii",
               needsBudget: false,
+              availableIn: ["shop", "restaurant", "entertainment"], // tylko firmy z cenami
+            },
+            cleaning: {
+              id: "cleaning",
+              name: isEn ? "Cleaning" : "Sprzątanie",
+              icon: "🧹",
+              description: isEn
+                ? "Keeps business clean (dirty = bad reviews)"
+                : "Utrzymuje czystość (brudno = złe opinie)",
+              needsBudget: false,
+              availableIn: "all",
             },
             supervisor: {
               id: "supervisor",
               name: isEn ? "Supervisor" : "Kierownik",
               icon: "👔",
               description: isEn
-                ? "Manages other workers"
-                : "Zarządza innymi pracownikami",
+                ? "Manages other workers, improves efficiency"
+                : "Zarządza pracownikami, poprawia efektywność",
               needsBudget: false,
+              availableIn: "all",
             },
           };
+        }
+
+        // Sprawdź czy rola jest dostępna dla danej kategorii firmy
+        function isRoleAvailableForBusiness(roleId, categoryId) {
+          const roles = getWorkerRoles();
+          const role = roles[roleId];
+          if (!role) return false;
+          if (role.availableIn === "all") return true;
+          if (Array.isArray(role.availableIn)) {
+            return role.availableIn.includes(categoryId);
+          }
+          return false;
         }
 
         // System promocji dla firmy
@@ -14280,6 +14311,20 @@
             reputation: 50, // 0-100
             insurances: [], // Dla firm ubezpieczeniowych
             companyBalance: 0, // Konto firmowe - 30% z pracy właściciela
+            cleanliness: 100, // 0-100, spada z czasem
+            priceModifier: 1.0, // mnożnik cen (0.5-2.0)
+            lastCleanTime: Date.now(),
+            marketingResearchEnd: null, // kiedy kończy się research promocji
+            // Godziny otwarcia
+            openHour: 8, // 8:00
+            closeHour: 20, // 20:00
+            is24h: type.special === "24h", // niektóre firmy działają 24/7
+            // Dzisiejszy dzień
+            todayClients: [], // klienci którzy przyszli dzisiaj
+            todayIncome: 0,
+            todayReviews: { positive: 0, negative: 0, neutral: 0 },
+            lastBusinessDay: null, // data ostatniego dnia roboczego
+            pendingDayReport: null, // oczekujący raport do wyświetlenia
           };
 
           const businesses = getBusinesses();
@@ -14359,6 +14404,52 @@
             business.reputation
           }%</span>
             </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+              <span style="color: #888;">🧹 ${
+                isEn ? "Cleanliness" : "Czystość"
+              }:</span>
+              <span style="color: ${
+                (business.cleanliness || 100) > 60
+                  ? "#4ade80"
+                  : (business.cleanliness || 100) > 30
+                  ? "#f59e0b"
+                  : "#ef4444"
+              };">
+                ${Math.round(business.cleanliness || 100)}%
+                ${
+                  (business.cleanliness || 100) < 40
+                    ? isEn
+                      ? "⚠️ Dirty!"
+                      : "⚠️ Brudno!"
+                    : ""
+                }
+              </span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+              <span style="color: #888;">💰 ${
+                isEn ? "Price level" : "Poziom cen"
+              }:</span>
+              <span style="color: ${
+                (business.priceModifier || 1) > 1.2
+                  ? "#ef4444"
+                  : (business.priceModifier || 1) < 0.8
+                  ? "#4ade80"
+                  : "#f59e0b"
+              };">
+                ${Math.round((business.priceModifier || 1) * 100)}%
+                ${
+                  (business.priceModifier || 1) > 1.3
+                    ? isEn
+                      ? "📈 High"
+                      : "📈 Wysokie"
+                    : (business.priceModifier || 1) < 0.7
+                    ? isEn
+                      ? "📉 Low"
+                      : "📉 Niskie"
+                    : ""
+                }
+              </span>
+            </div>
             ${
               hiredWorkers.length > 0
                 ? (() => {
@@ -14391,6 +14482,159 @@
                   })()
                 : ""
             }
+          </div>
+
+          <!-- GODZINY OTWARCIA I DZISIEJSI KLIENCI -->
+          <div style="background: linear-gradient(145deg, rgba(16,185,129,0.1), rgba(16,185,129,0.05)); border: 1px solid #10b981; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div style="font-weight: bold; color: #10b981;">🕐 ${
+                isEn ? "Opening Hours" : "Godziny Otwarcia"
+              }</div>
+              <div style="color: ${
+                isBusinessOpen(business) ? "#4ade80" : "#ef4444"
+              }; font-weight: bold;">
+                ${
+                  isBusinessOpen(business)
+                    ? isEn
+                      ? "✅ OPEN"
+                      : "✅ OTWARTE"
+                    : isEn
+                    ? "🔒 CLOSED"
+                    : "🔒 ZAMKNIĘTE"
+                }
+              </div>
+            </div>
+            ${
+              business.is24h
+                ? `
+              <div style="text-align: center; color: #4ade80; font-size: 1.1em;">🌙 24/7</div>
+            `
+                : `
+              <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <div style="flex: 1;">
+                  <label style="color: #888; font-size: 0.8em;">${
+                    isEn ? "Open" : "Otwarcie"
+                  }</label>
+                  <select onchange="setBusinessHours(${index}, 'open', this.value)" style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; border-radius: 5px; color: white;">
+                    ${Array.from(
+                      { length: 24 },
+                      (_, i) =>
+                        `<option value="${i}" ${
+                          (business.openHour || 8) === i ? "selected" : ""
+                        }>${String(i).padStart(2, "0")}:00</option>`
+                    ).join("")}
+                  </select>
+                </div>
+                <div style="flex: 1;">
+                  <label style="color: #888; font-size: 0.8em;">${
+                    isEn ? "Close" : "Zamknięcie"
+                  }</label>
+                  <select onchange="setBusinessHours(${index}, 'close', this.value)" style="width: 100%; padding: 8px; background: #333; border: 1px solid #555; border-radius: 5px; color: white;">
+                    ${Array.from(
+                      { length: 24 },
+                      (_, i) =>
+                        `<option value="${i}" ${
+                          (business.closeHour || 20) === i ? "selected" : ""
+                        }>${String(i).padStart(2, "0")}:00</option>`
+                    ).join("")}
+                  </select>
+                </div>
+              </div>
+            `
+            }
+            
+            <!-- Dzisiejsi klienci -->
+            <div style="border-top: 1px solid #333; padding-top: 10px; margin-top: 10px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888;">👥 ${
+                  isEn ? "Today's clients" : "Klienci dziś"
+                }:</span>
+                <span style="color: #4ade80; font-weight: bold;">${
+                  business.clientsServedToday || 0
+                }</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888;">💰 ${
+                  isEn ? "Today's income" : "Przychód dziś"
+                }:</span>
+                <span style="color: #4ade80; font-weight: bold;">+${(
+                  business.todayIncome || 0
+                ).toLocaleString()} ${getCurrency()}</span>
+              </div>
+              <div style="display: flex; justify-content: space-around; text-align: center; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 5px;">
+                <div>
+                  <div style="font-size: 1.2em;">😊</div>
+                  <div style="color: #4ade80; font-weight: bold;">${
+                    business.todayReviews?.positive || 0
+                  }</div>
+                </div>
+                <div>
+                  <div style="font-size: 1.2em;">😐</div>
+                  <div style="color: #888; font-weight: bold;">${
+                    business.todayReviews?.neutral || 0
+                  }</div>
+                </div>
+                <div>
+                  <div style="font-size: 1.2em;">😠</div>
+                  <div style="color: #ef4444; font-weight: bold;">${
+                    business.todayReviews?.negative || 0
+                  }</div>
+                </div>
+              </div>
+              
+              <!-- Ostatnie opinie -->
+              ${
+                business.todayClients && business.todayClients.length > 0
+                  ? `
+                <div style="margin-top: 10px; border-top: 1px solid #333; padding-top: 10px;">
+                  <div style="color: #888; font-size: 0.85em; margin-bottom: 8px;">📝 ${
+                    isEn ? "Recent reviews" : "Ostatnie opinie"
+                  }:</div>
+                  <div style="max-height: 150px; overflow-y: auto;">
+                    ${business.todayClients
+                      .slice(-5)
+                      .reverse()
+                      .map((c) => {
+                        const time = new Date(c.time);
+                        const timeStr =
+                          time.getHours().toString().padStart(2, "0") +
+                          ":" +
+                          time.getMinutes().toString().padStart(2, "0");
+                        const stars =
+                          "⭐".repeat(Math.floor(c.rating || 3)) +
+                          ((c.rating || 3) % 1 >= 0.5 ? "½" : "");
+                        const color =
+                          (c.rating || 3) >= 4
+                            ? "#4ade80"
+                            : (c.rating || 3) >= 3
+                            ? "#f59e0b"
+                            : "#ef4444";
+                        return `
+                        <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 5px; margin-bottom: 5px; font-size: 0.85em;">
+                          <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                            <span style="color: ${color};">${stars}</span>
+                            <span style="color: #666; font-size: 0.8em;">${timeStr}</span>
+                          </div>
+                          <div style="color: #ccc; font-style: italic;">"${
+                            c.text || "..."
+                          }"</div>
+                          ${
+                            c.spent
+                              ? `<div style="color: #4ade80; font-size: 0.8em; margin-top: 3px;">+${
+                                  c.spent
+                                } ${getCurrency()}</div>`
+                              : ""
+                          }
+                        </div>
+                      `;
+                      })
+                      .join("")}
+                  </div>
+                </div>
+              `
+                  : ""
+              }
+            </div>
           </div>
 
           <!-- WŁAŚCICIEL -->
@@ -14776,6 +15020,45 @@
               isEn ? "Deposited" : "Wpłacono"
             }: ${num.toLocaleString()} ${getCurrency()}`
           );
+        }
+
+        function setBusinessHours(businessIndex, type, value) {
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
+          const hour = parseInt(value);
+          const isEn = currentLang === "en";
+
+          const oldHour =
+            type === "open" ? business.openHour : business.closeHour;
+
+          if (type === "open") {
+            business.openHour = hour;
+          } else {
+            business.closeHour = hour;
+          }
+
+          // Powiadom pracowników o zmianie godzin (10% szans na narzekanie)
+          if (oldHour !== hour) {
+            const hiredWorkers = business.workers.filter((w) => w.hired);
+            hiredWorkers.forEach((worker) => {
+              if (Math.random() < 0.1) {
+                const message = generateWorkerMessage("hours_complaint");
+                addWorkerNotification(
+                  businessIndex,
+                  worker.id,
+                  "hours_complaint",
+                  message
+                );
+                worker.satisfaction = Math.max(
+                  0,
+                  (worker.satisfaction || 50) - 5
+                );
+              }
+            });
+          }
+
+          saveBusinesses(businesses);
+          renderBusinessDetail(businessIndex);
         }
 
         // ========== SYSTEM PROMOCJI ==========
@@ -17089,20 +17372,20 @@
                 isEn ? "WORKERS" : "PRACOWNICY"
               }</div>
               ${
-                report.workers.length > 0
+                report.workers && report.workers.length > 0
                   ? report.workers
                       .map(
                         (w) => `
                 <div style="display: flex; justify-content: space-between; font-size: 0.85em; margin-bottom: 3px;">
-                  <span>${w.name}</span>
+                  <span>${w.name || "Pracownik"}</span>
                   <span style="color: #ef4444;">-${
-                    w.salary + w.bonus
+                    (w.salary || 0) + (w.bonus || 0)
                   } ${getCurrency()}</span>
                 </div>
                 <div style="font-size: 0.7em; color: #666; margin-bottom: 5px; margin-left: 10px;">
-                  💰 ${isEn ? "Salary" : "Pensja"}: ${w.salary} + 🎁 ${
+                  💰 ${isEn ? "Salary" : "Pensja"}: ${w.salary || 0} + 🎁 ${
                           isEn ? "Bonus" : "Prowizja"
-                        }: ${w.bonus}
+                        }: ${w.bonus || 0}
                 </div>
               `
                       )
@@ -17112,7 +17395,7 @@
                     }</div>`
               }
               ${
-                report.workers.length > 0
+                report.workers && report.workers.length > 0
                   ? `
               <div style="display: flex; justify-content: space-between; margin-top: 5px; font-weight: bold; border-top: 1px solid #333; padding-top: 5px;">
                 <span>${isEn ? "Salaries" : "Pensje"}:</span>
@@ -17122,7 +17405,9 @@
               }
               <div style="display: flex; justify-content: space-between; font-weight: bold;">
                 <span>${isEn ? "Commissions" : "Prowizje"}:</span>
-                <span style="color: #ef4444;">-${report.bonusesPaid.toLocaleString()} ${getCurrency()}</span>
+                <span style="color: #ef4444;">-${(
+                  report.bonusesPaid || 0
+                ).toLocaleString()} ${getCurrency()}</span>
               </div>
             </div>
             
@@ -17676,31 +17961,1056 @@
 
         // ==================== AUTOMATYCZNE DNI ROBOCZE ====================
 
-        function processAutomaticBusinessDays() {
+        // ========== SYSTEM POWIADOMIEŃ OD PRACOWNIKÓW ==========
+
+        function getWorkerNotifications() {
+          const save = getCurrentSave();
+          if (!save) return [];
+          const modeKey =
+            gameMode === "reallife" ? "realLifeData" : "beamngData";
+          return save[modeKey]?.workerNotifications || [];
+        }
+
+        function saveWorkerNotifications(notifications) {
+          const save = getCurrentSave();
+          if (!save) return;
+          const modeKey =
+            gameMode === "reallife" ? "realLifeData" : "beamngData";
+          if (!save[modeKey]) save[modeKey] = {};
+          save[modeKey].workerNotifications = notifications;
+          localStorage.setItem("beamng_saves", JSON.stringify(saves));
+        }
+
+        function addWorkerNotification(businessIndex, workerId, type, message) {
+          const notifications = getWorkerNotifications();
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
+          const worker = business?.workers?.find((w) => w.id === workerId);
+
+          if (!worker) return;
+
+          notifications.push({
+            id:
+              "wn_" +
+              Date.now() +
+              "_" +
+              Math.random().toString(36).substr(2, 6),
+            businessIndex: businessIndex,
+            businessName: business.name,
+            workerId: workerId,
+            workerName: worker.name,
+            type: type, // 'raise_request', 'unhappy', 'quit_warning', 'overtime', 'budget_request'
+            message: message,
+            timestamp: Date.now(),
+            read: false,
+          });
+
+          saveWorkerNotifications(notifications);
+          updateWorkerNotificationBadge();
+        }
+
+        function updateWorkerNotificationBadge() {
+          const notifications = getWorkerNotifications();
+          const unread = notifications.filter((n) => !n.read).length;
+          const badge = document.getElementById("notificationBadge");
+
+          if (badge) {
+            const onlineUnread = parseInt(badge.dataset.online || "0");
+            const total = unread + onlineUnread;
+
+            if (total > 0) {
+              badge.style.display = "flex";
+              badge.textContent = total > 99 ? "99+" : total;
+            } else {
+              badge.style.display = "none";
+            }
+          }
+        }
+
+        function renderWorkerNotifications() {
+          const container = document.getElementById("notificationsList");
+          if (!container) return;
+
+          const notifications = getWorkerNotifications();
+          const isEn = currentLang === "en";
+
+          // Połącz z online powiadomieniami
+          const onlineNotifs = getMyNotifications ? getMyNotifications() : [];
+
+          if (notifications.length === 0 && onlineNotifs.length === 0) {
+            container.innerHTML = `<p style="color: #888; text-align: center;">${
+              isEn ? "No notifications" : "Brak powiadomień"
+            }</p>`;
+            return;
+          }
+
+          // Sortuj od najnowszych
+          const allNotifs = [
+            ...notifications.map((n) => ({ ...n, source: "worker" })),
+            ...onlineNotifs.map((n) => ({ ...n, source: "online" })),
+          ].sort((a, b) => b.timestamp - a.timestamp);
+
+          container.innerHTML = allNotifs
+            .map((n) => {
+              const time = new Date(n.timestamp);
+              const timeStr = time.toLocaleString();
+              const isWorkerNotif = n.source === "worker";
+
+              const typeIcons = {
+                raise_request: "💰",
+                unhappy: "😤",
+                quit_warning: "⚠️",
+                overtime: "⏰",
+                budget_request: "💵",
+                hours_complaint: "🕐",
+              };
+
+              const icon = isWorkerNotif ? typeIcons[n.type] || "📩" : "📬";
+              const bgColor = n.read
+                ? "rgba(255,255,255,0.02)"
+                : "rgba(59,130,246,0.1)";
+
+              return `
+            <div style="background: ${bgColor}; padding: 12px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; border-left: 3px solid ${
+                n.read ? "#333" : "#3b82f6"
+              };"
+                 onclick="${
+                   isWorkerNotif
+                     ? `openWorkerNotification('${n.id}')`
+                     : `markNotificationRead('${n.id}')`
+                 }">
+              <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div style="flex: 1;">
+                  <div style="font-weight: bold; margin-bottom: 4px;">
+                    ${icon} ${isWorkerNotif ? n.workerName : n.from || "System"}
+                  </div>
+                  <div style="color: #aaa; font-size: 0.9em;">${
+                    n.message || n.text || ""
+                  }</div>
+                  ${
+                    isWorkerNotif
+                      ? `<div style="color: #666; font-size: 0.8em; margin-top: 4px;">🏢 ${n.businessName}</div>`
+                      : ""
+                  }
+                </div>
+                <div style="text-align: right;">
+                  <div style="color: #666; font-size: 0.75em;">${timeStr}</div>
+                  <button onclick="event.stopPropagation(); deleteWorkerNotification('${
+                    n.id
+                  }', '${n.source}')" 
+                          style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 0.8em; margin-top: 5px;">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+            })
+            .join("");
+        }
+
+        function openWorkerNotification(notifId) {
+          const notifications = getWorkerNotifications();
+          const notif = notifications.find((n) => n.id === notifId);
+
+          if (!notif) return;
+
+          // Oznacz jako przeczytane
+          notif.read = true;
+          saveWorkerNotifications(notifications);
+          updateWorkerNotificationBadge();
+
+          // Zamknij modal powiadomień
+          closeModal("notifications");
+
+          // Otwórz czat z pracownikiem
+          setTimeout(() => {
+            talkToWorker(notif.businessIndex, notif.workerId);
+          }, 100);
+        }
+
+        function deleteWorkerNotification(notifId, source) {
+          if (source === "worker") {
+            let notifications = getWorkerNotifications();
+            notifications = notifications.filter((n) => n.id !== notifId);
+            saveWorkerNotifications(notifications);
+          } else {
+            removeNotification(notifId);
+          }
+          renderWorkerNotifications();
+          updateWorkerNotificationBadge();
+        }
+
+        // Wiadomości jakie mogą wysłać pracownicy
+        function getWorkerMessageTemplates() {
+          const isEn = currentLang === "en";
+          return {
+            raise_request: isEn
+              ? [
+                  "I think I deserve a raise. Can we talk about my salary?",
+                  "I've been working hard. I'd like to discuss a pay increase.",
+                  "My performance has improved. Could we review my compensation?",
+                  "I feel underpaid for my responsibilities. Can we negotiate?",
+                  "Other companies are offering more. I'd like a raise to stay.",
+                ]
+              : [
+                  "Uważam, że zasługuję na podwyżkę. Możemy porozmawiać?",
+                  "Ciężko pracuję. Chciałbym omówić podwyżkę.",
+                  "Moja wydajność się poprawiła. Możemy przejrzeć wynagrodzenie?",
+                  "Czuję się niedopłacany. Możemy negocjować?",
+                  "Inne firmy oferują więcej. Chciałbym podwyżkę żeby zostać.",
+                ],
+            unhappy: isEn
+              ? [
+                  "I'm not happy with the current situation...",
+                  "Things aren't going well for me here.",
+                  "I have some concerns I need to discuss.",
+                  "The working conditions are affecting my mood.",
+                  "I'm feeling demotivated lately.",
+                ]
+              : [
+                  "Nie jestem zadowolony z obecnej sytuacji...",
+                  "Nie układa mi się tutaj dobrze.",
+                  "Mam pewne obawy do omówienia.",
+                  "Warunki pracy wpływają na mój nastrój.",
+                  "Ostatnio czuję się zdemotywowany.",
+                ],
+            quit_warning: isEn
+              ? [
+                  "I'm considering leaving if things don't change.",
+                  "I've had offers from other companies...",
+                  "If my concerns aren't addressed, I may have to quit.",
+                  "I'm at my breaking point here.",
+                  "This might be my last warning before I resign.",
+                ]
+              : [
+                  "Rozważam odejście jeśli nic się nie zmieni.",
+                  "Miałem oferty od innych firm...",
+                  "Jeśli moje obawy nie zostaną rozwiązane, będę musiał odejść.",
+                  "Jestem na granicy wytrzymałości.",
+                  "To może być moje ostatnie ostrzeżenie przed rezygnacją.",
+                ],
+            hours_complaint: isEn
+              ? [
+                  "The new working hours don't suit me at all!",
+                  "I wasn't consulted about the schedule change.",
+                  "These hours are really inconvenient for me.",
+                  "Can we discuss the working hours? I'm struggling.",
+                  "The schedule change is affecting my personal life.",
+                ]
+              : [
+                  "Nowe godziny pracy zupełnie mi nie pasują!",
+                  "Nikt mnie nie pytał o zmianę grafiku.",
+                  "Te godziny są dla mnie bardzo niewygodne.",
+                  "Możemy omówić godziny pracy? Mam problem.",
+                  "Zmiana grafiku wpływa na moje życie prywatne.",
+                ],
+            budget_request: isEn
+              ? [
+                  "I need more budget to do my job effectively.",
+                  "My current budget is running low. Can we discuss?",
+                  "I could achieve more with additional resources.",
+                  "The budget is limiting my work. Can we increase it?",
+                  "I'm requesting a budget review for my department.",
+                ]
+              : [
+                  "Potrzebuję większego budżetu żeby efektywnie pracować.",
+                  "Mój budżet się kończy. Możemy porozmawiać?",
+                  "Mógłbym osiągnąć więcej z dodatkowymi zasobami.",
+                  "Budżet ogranicza moją pracę. Możemy go zwiększyć?",
+                  "Proszę o przegląd budżetu dla mojego działu.",
+                ],
+          };
+        }
+
+        function generateWorkerMessage(type) {
+          const templates = getWorkerMessageTemplates();
+          const messages = templates[type] || templates.unhappy;
+          return messages[Math.floor(Math.random() * messages.length)];
+        }
+
+        // Sprawdź czy pracownicy chcą wysłać wiadomości
+        function checkWorkerMessages() {
           const businesses = getBusinesses();
           const now = Date.now();
-          const DAY_MS = 24 * 60 * 60 * 1000; // 24h rzeczywiste
-          let anyProcessed = false;
+          const isEn = currentLang === "en";
+
+          businesses.forEach((business, businessIndex) => {
+            const hiredWorkers = business.workers.filter((w) => w.hired);
+
+            hiredWorkers.forEach((worker) => {
+              // Sprawdź czy pracownik niedawno wysłał wiadomość (min 1h przerwy)
+              const lastMessage = worker.lastNotificationTime || 0;
+              if (now - lastMessage < 60 * 60 * 1000) return;
+
+              const satisfaction = worker.satisfaction || 50;
+              const daysWorked = worker.daysWorked || 0;
+
+              // Różne warunki wysyłania wiadomości
+
+              // Prośba o podwyżkę - po 7 dniach pracy, losowo
+              if (daysWorked >= 7 && Math.random() < 0.02) {
+                const message = generateWorkerMessage("raise_request");
+                addWorkerNotification(
+                  businessIndex,
+                  worker.id,
+                  "raise_request",
+                  message
+                );
+                worker.lastNotificationTime = now;
+                worker.pendingRequest = "raise";
+              }
+              // Niezadowolenie - gdy satisfaction < 40
+              else if (satisfaction < 40 && Math.random() < 0.05) {
+                const message = generateWorkerMessage("unhappy");
+                addWorkerNotification(
+                  businessIndex,
+                  worker.id,
+                  "unhappy",
+                  message
+                );
+                worker.lastNotificationTime = now;
+              }
+              // Ostrzeżenie o odejściu - gdy satisfaction < 20
+              else if (satisfaction < 20 && Math.random() < 0.03) {
+                const message = generateWorkerMessage("quit_warning");
+                addWorkerNotification(
+                  businessIndex,
+                  worker.id,
+                  "quit_warning",
+                  message
+                );
+                worker.lastNotificationTime = now;
+                worker.pendingRequest = "quit_warning";
+              }
+              // Prośba o budżet - gdy ma rolę z budżetem i budżet < 20% oczekiwanego
+              else if (worker.assignedBudget !== undefined) {
+                const budget =
+                  worker.assignedBudget - (worker.budgetSpent || 0);
+                const expected = worker.expectedBudget || 1000;
+                if (budget < expected * 0.2 && Math.random() < 0.04) {
+                  const message = generateWorkerMessage("budget_request");
+                  addWorkerNotification(
+                    businessIndex,
+                    worker.id,
+                    "budget_request",
+                    message
+                  );
+                  worker.lastNotificationTime = now;
+                  worker.pendingRequest = "budget";
+                }
+              }
+            });
+          });
+
+          saveBusinesses(businesses);
+        }
+
+        // Sprawdzaj wiadomości pracowników co 2 minuty
+        setInterval(checkWorkerMessages, 2 * 60 * 1000);
+        // Sprawdź przy starcie
+        setTimeout(checkWorkerMessages, 10000);
+        // Aktualizuj badge przy starcie
+        setTimeout(updateWorkerNotificationBadge, 1000);
+
+        // ========== NOWY SYSTEM - KLIENCI W CZASIE RZECZYWISTYM ==========
+
+        // System opinii klientów - teksty dla każdej oceny (1-5 gwiazdek, po 20 tekstów)
+        function getReviewTexts() {
+          const isEn = currentLang === "en";
+          return {
+            // ⭐ 1 gwiazdka - bardzo źle
+            star1: isEn
+              ? [
+                  "Terrible experience! Never coming back!",
+                  "Worst service I've ever seen.",
+                  "Complete waste of money.",
+                  "Staff was incredibly rude.",
+                  "Dirty and disgusting place.",
+                  "I want my money back!",
+                  "Absolutely horrible.",
+                  "Don't waste your time here.",
+                  "The worst decision I made today.",
+                  "I'm shocked how bad this was.",
+                  "Zero stars if I could!",
+                  "Management should be ashamed.",
+                  "Health hazard! Avoid!",
+                  "Scam! Don't fall for it!",
+                  "I feel robbed.",
+                  "Unacceptable quality.",
+                  "My expectations were low but WOW.",
+                  "Even free would be too expensive.",
+                  "I'm writing a complaint.",
+                  "Warned everyone I know.",
+                ]
+              : [
+                  "Tragiczne doświadczenie! Nigdy nie wrócę!",
+                  "Najgorsza obsługa jaką widziałem.",
+                  "Kompletna strata pieniędzy.",
+                  "Personel był niesamowicie niegrzeczny.",
+                  "Brudne i obrzydliwe miejsce.",
+                  "Chcę zwrot pieniędzy!",
+                  "Absolutnie okropne.",
+                  "Nie trać tu czasu.",
+                  "Najgorsza decyzja dnia.",
+                  "Jestem w szoku jak źle było.",
+                  "Zero gwiazdek jakbym mógł!",
+                  "Zarząd powinien się wstydzić.",
+                  "Zagrożenie zdrowia! Unikać!",
+                  "Oszustwo! Nie daj się nabrać!",
+                  "Czuję się okradziony.",
+                  "Nieakceptowalna jakość.",
+                  "Moje oczekiwania były niskie ale WOW.",
+                  "Nawet za darmo byłoby za drogo.",
+                  "Piszę skargę.",
+                  "Ostrzegłem wszystkich znajomych.",
+                ],
+            // ⭐⭐ 1.5-2 gwiazdki - słabo
+            star2: isEn
+              ? [
+                  "Pretty disappointing overall.",
+                  "Expected much better.",
+                  "Not worth the price.",
+                  "Service was slow and unfriendly.",
+                  "Could use some serious improvements.",
+                  "Left feeling unsatisfied.",
+                  "Mediocre at best.",
+                  "Won't be recommending this.",
+                  "The place needs cleaning.",
+                  "Overpriced for what you get.",
+                  "Staff seemed untrained.",
+                  "Long wait times.",
+                  "Quality was below average.",
+                  "Had better experiences elsewhere.",
+                  "Not impressed at all.",
+                  "Needs work in many areas.",
+                  "Probably won't return.",
+                  "Felt rushed and ignored.",
+                  "Not what was advertised.",
+                  "Barely acceptable.",
+                ]
+              : [
+                  "Dość rozczarowujące ogólnie.",
+                  "Oczekiwałem znacznie lepiej.",
+                  "Nie warte ceny.",
+                  "Obsługa była powolna i nieprzyjazna.",
+                  "Wymaga poważnych poprawek.",
+                  "Wyszedłem niezadowolony.",
+                  "W najlepszym razie przeciętne.",
+                  "Nie będę polecać.",
+                  "Miejsce wymaga sprzątania.",
+                  "Zawyżona cena za to co dostajemy.",
+                  "Personel wydawał się nieprzeszkolony.",
+                  "Długi czas oczekiwania.",
+                  "Jakość poniżej średniej.",
+                  "Miałem lepsze doświadczenia gdzie indziej.",
+                  "Zupełnie nie robi wrażenia.",
+                  "Wymaga pracy w wielu obszarach.",
+                  "Prawdopodobnie nie wrócę.",
+                  "Czułem się pośpieszany i ignorowany.",
+                  "Nie to co reklamowano.",
+                  "Ledwo akceptowalne.",
+                ],
+            // ⭐⭐⭐ 2.5-3 gwiazdki - średnio
+            star3: isEn
+              ? [
+                  "It was okay, nothing special.",
+                  "Average experience.",
+                  "Some good, some bad.",
+                  "Met basic expectations.",
+                  "Neither great nor terrible.",
+                  "Room for improvement.",
+                  "Decent but unremarkable.",
+                  "Standard quality.",
+                  "Could be better, could be worse.",
+                  "Just an ordinary visit.",
+                  "Fair for the price.",
+                  "No complaints, no praise.",
+                  "Middle of the road.",
+                  "Acceptable quality.",
+                  "Did the job.",
+                  "Neutral feelings about it.",
+                  "Been to better, been to worse.",
+                  "It's fine I guess.",
+                  "Nothing to write home about.",
+                  "Average service.",
+                ]
+              : [
+                  "Było okej, nic specjalnego.",
+                  "Przeciętne doświadczenie.",
+                  "Trochę dobrego, trochę złego.",
+                  "Spełniło podstawowe oczekiwania.",
+                  "Ani świetne ani okropne.",
+                  "Jest miejsce na poprawę.",
+                  "Przyzwoite ale nie wyróżniające się.",
+                  "Standardowa jakość.",
+                  "Mogło być lepiej, mogło gorzej.",
+                  "Zwykła wizyta.",
+                  "W porządku jak na cenę.",
+                  "Bez skarg, bez pochwał.",
+                  "Środek drogi.",
+                  "Akceptowalna jakość.",
+                  "Spełniło zadanie.",
+                  "Neutralne odczucia.",
+                  "Byłem w lepszych i gorszych.",
+                  "Jest w porządku chyba.",
+                  "Nic o czym pisać.",
+                  "Przeciętna obsługa.",
+                ],
+            // ⭐⭐⭐⭐ 3.5-4 gwiazdki - dobrze
+            star4: isEn
+              ? [
+                  "Really good experience!",
+                  "Would definitely come back.",
+                  "Friendly and professional staff.",
+                  "Good value for money.",
+                  "Pleasant surprise!",
+                  "Above my expectations.",
+                  "Clean and well-organized.",
+                  "Highly recommended!",
+                  "Quality service.",
+                  "Left happy and satisfied.",
+                  "Will tell my friends.",
+                  "Almost perfect!",
+                  "Great atmosphere.",
+                  "Efficient and quick.",
+                  "Minor issues but overall great.",
+                  "Professional and courteous.",
+                  "Impressed with the quality.",
+                  "Worth every penny.",
+                  "A solid choice.",
+                  "Very good experience overall.",
+                ]
+              : [
+                  "Naprawdę dobre doświadczenie!",
+                  "Na pewno wrócę.",
+                  "Przyjazny i profesjonalny personel.",
+                  "Dobra wartość za pieniądze.",
+                  "Miła niespodzianka!",
+                  "Powyżej moich oczekiwań.",
+                  "Czysto i dobrze zorganizowane.",
+                  "Gorąco polecam!",
+                  "Jakościowa obsługa.",
+                  "Wyszedłem szczęśliwy i zadowolony.",
+                  "Powiem znajomym.",
+                  "Prawie idealne!",
+                  "Świetna atmosfera.",
+                  "Sprawnie i szybko.",
+                  "Drobne problemy ale ogólnie super.",
+                  "Profesjonalnie i uprzejmie.",
+                  "Pod wrażeniem jakości.",
+                  "Warte każdej złotówki.",
+                  "Solidny wybór.",
+                  "Bardzo dobre doświadczenie ogólnie.",
+                ],
+            // ⭐⭐⭐⭐⭐ 4.5-5 gwiazdek - doskonale
+            star5: isEn
+              ? [
+                  "Absolutely amazing! 10/10!",
+                  "Best experience ever!",
+                  "Perfect in every way!",
+                  "Exceeded all expectations!",
+                  "World class service!",
+                  "I'm a customer for life!",
+                  "Flawless experience!",
+                  "Outstanding quality!",
+                  "This is how it should be done!",
+                  "Blown away by excellence!",
+                  "Five stars isn't enough!",
+                  "Incredible attention to detail!",
+                  "Top notch everything!",
+                  "My new favorite place!",
+                  "Absolutely brilliant!",
+                  "Perfection achieved!",
+                  "Can't recommend enough!",
+                  "A true gem!",
+                  "Beyond expectations!",
+                  "Simply the best!",
+                ]
+              : [
+                  "Absolutnie niesamowite! 10/10!",
+                  "Najlepsze doświadczenie ever!",
+                  "Perfekcyjne pod każdym względem!",
+                  "Przekroczyło wszystkie oczekiwania!",
+                  "Obsługa na światowym poziomie!",
+                  "Jestem klientem na całe życie!",
+                  "Bezbłędne doświadczenie!",
+                  "Wybitna jakość!",
+                  "Tak to powinno wyglądać!",
+                  "Zaskoczony doskonałością!",
+                  "Pięć gwiazdek to za mało!",
+                  "Niesamowita dbałość o szczegóły!",
+                  "Wszystko na najwyższym poziomie!",
+                  "Moje nowe ulubione miejsce!",
+                  "Absolutnie genialne!",
+                  "Perfekcja osiągnięta!",
+                  "Nie mogę wystarczająco polecić!",
+                  "Prawdziwy skarb!",
+                  "Ponad oczekiwania!",
+                  "Po prostu najlepsze!",
+                ],
+          };
+        }
+
+        function getRandomReview(rating) {
+          // rating: 1-5 (można też 1.5, 2.5 itd)
+          const texts = getReviewTexts();
+          let category;
+          if (rating <= 1) category = "star1";
+          else if (rating <= 2) category = "star2";
+          else if (rating <= 3) category = "star3";
+          else if (rating <= 4) category = "star4";
+          else category = "star5";
+
+          const options = texts[category];
+          return options[Math.floor(Math.random() * options.length)];
+        }
+
+        function reviewTypeToRating(reviewType) {
+          switch (reviewType) {
+            case "angry":
+              return 1;
+            case "negative":
+              return 2;
+            case "neutral":
+              return 3;
+            case "positive":
+              return 4;
+            case "excellent":
+              return 5;
+            default:
+              return 3;
+          }
+        }
+
+        function ratingToStars(rating) {
+          const fullStars = Math.floor(rating);
+          const halfStar = rating % 1 >= 0.5;
+          let stars = "⭐".repeat(fullStars);
+          if (halfStar) stars += "½";
+          return stars;
+        }
+
+        function getTodayDateStr() {
+          const d = new Date();
+          return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+        }
+
+        function getCurrentHour() {
+          return new Date().getHours();
+        }
+
+        function isBusinessOpen(business) {
+          if (business.is24h) return true;
+          const hour = getCurrentHour();
+          return (
+            hour >= (business.openHour || 8) &&
+            hour < (business.closeHour || 20)
+          );
+        }
+
+        function processBusinessRealtime() {
+          const businesses = getBusinesses();
+          const now = Date.now();
+          const today = getTodayDateStr();
+          const currentHour = getCurrentHour();
+          let anyChanged = false;
 
           businesses.forEach((business, index) => {
-            const lastDay = business.lastDayProcessed || now - DAY_MS - 1000; // Jeśli nowa firma, przetwórz od razu
-
-            if (now - lastDay >= DAY_MS) {
-              const hiredWorkers = business.workers.filter((w) => w.hired);
-
-              if (hiredWorkers.length > 0) {
-                // Przetwórz dzień dla tej firmy
-                processBusinessDayAuto(index);
-                anyProcessed = true;
+            // Sprawdź czy nowy dzień - zresetuj dane
+            if (business.lastBusinessDay !== today) {
+              // Jeśli był poprzedni dzień i ma dane - stwórz raport
+              if (
+                business.lastBusinessDay &&
+                (business.todayIncome > 0 || business.todayClients?.length > 0)
+              ) {
+                createDayReport(business, index);
               }
+              // Reset na nowy dzień
+              business.todayClients = [];
+              business.todayIncome = 0;
+              business.todayReviews = { positive: 0, negative: 0, neutral: 0 };
+              business.lastBusinessDay = today;
+              business.clientsServedToday = 0;
+              anyChanged = true;
+            }
 
-              business.lastDayProcessed = now;
+            // Sprawdź czy czas na zamknięcie i raport
+            if (!business.is24h && currentHour >= (business.closeHour || 20)) {
+              if (!business.dayReportCreated) {
+                createDayReport(business, index);
+                business.dayReportCreated = true;
+                anyChanged = true;
+              }
+            } else {
+              business.dayReportCreated = false;
+            }
+
+            // Jeśli firma otwarta - losowo przychodź klienci
+            if (isBusinessOpen(business)) {
+              const result = processIncomingClient(business, index);
+              if (result) anyChanged = true;
             }
           });
 
-          if (anyProcessed) {
+          if (anyChanged) {
             saveBusinesses(businesses);
           }
+        }
+
+        function processIncomingClient(business, businessIndex) {
+          const hiredWorkers = business.workers.filter((w) => w.hired);
+          const serviceWorkers = hiredWorkers.filter(
+            (w) => (w.assignedRole || "service") === "service"
+          );
+          const cleaningWorkers = hiredWorkers.filter(
+            (w) => w.assignedRole === "cleaning"
+          );
+          const pricingWorkers = hiredWorkers.filter(
+            (w) => w.assignedRole === "pricing"
+          );
+          const marketingWorkers = hiredWorkers.filter(
+            (w) => w.assignedRole === "marketing"
+          );
+          const ownerWorking = business.ownerWorking || false;
+          const isEn = currentLang === "en";
+
+          // Ile klientów powinno przyjść dzisiaj
+          const openHours = business.is24h
+            ? 24
+            : (business.closeHour || 20) - (business.openHour || 8);
+          const clientsPerHour = business.clientsPerDay / openHours;
+
+          // Modyfikatory
+          const reputationBonus = (business.reputation || 50) / 50;
+          const promoBonus = getPromotionBonus(business);
+
+          // Szansa na klienta w tej minucie
+          const clientChancePerMinute =
+            (clientsPerHour / 60) * reputationBonus * promoBonus;
+
+          if (Math.random() > clientChancePerMinute) {
+            return false; // Brak klienta w tej minucie
+          }
+
+          // Klient przyszedł!
+          const clientsServedToday = business.clientsServedToday || 0;
+
+          // Oblicz zdolność obsługi
+          const OWNER_CAPACITY = 10;
+          const WORKER_CAPACITY = 15;
+          let totalCapacity = ownerWorking ? OWNER_CAPACITY : 0;
+
+          serviceWorkers.forEach((w) => {
+            totalCapacity += Math.floor(
+              WORKER_CAPACITY * (w.personality?.speedMod || 1)
+            );
+          });
+
+          // Jeśli przekroczono zdolność - klient odchodzi zły
+          if (clientsServedToday >= totalCapacity && !ownerWorking) {
+            business.todayReviews.negative++;
+            const rating = 1;
+            business.todayClients.push({
+              time: Date.now(),
+              served: false,
+              review: "angry",
+              rating: rating,
+              text: getRandomReview(rating),
+            });
+            return true;
+          }
+
+          // Obsłuż klienta
+          const avgQuality =
+            serviceWorkers.length > 0
+              ? serviceWorkers.reduce(
+                  (sum, w) => sum + (w.personality?.qualityMod || 1),
+                  0
+                ) / serviceWorkers.length
+              : 1;
+          const avgErrorRate =
+            serviceWorkers.length > 0
+              ? serviceWorkers.reduce(
+                  (sum, w) => sum + (w.personality?.errorRate || 0.1),
+                  0
+                ) / serviceWorkers.length
+              : 0.1;
+
+          const priceModifier = business.priceModifier || 1;
+          const cleanliness = business.cleanliness || 100;
+
+          const clientSpend = Math.floor(
+            business.avgIncome *
+              avgQuality *
+              priceModifier *
+              (0.5 + Math.random())
+          );
+          business.todayIncome += clientSpend;
+          business.clientsServedToday = (business.clientsServedToday || 0) + 1;
+
+          // Ocena klienta - bardziej szczegółowa
+          const madeError = Math.random() < avgErrorRate;
+          const cleanlinessEffect =
+            cleanliness < 30 ? -1 : cleanliness < 60 ? -0.5 : 0.5;
+          const priceEffect =
+            priceModifier > 1.3 ? -0.5 : priceModifier < 0.8 ? 0.5 : 0;
+          const qualityEffect = (avgQuality - 1) * 2;
+
+          // Bazowa ocena 3, modyfikowana przez różne czynniki
+          let rating =
+            3 +
+            cleanlinessEffect +
+            priceEffect +
+            qualityEffect +
+            (Math.random() - 0.5);
+          if (madeError) rating -= 1.5;
+          rating = Math.max(1, Math.min(5, rating));
+          rating = Math.round(rating * 2) / 2; // Zaokrąglij do 0.5
+
+          let review = "neutral";
+          if (rating <= 1.5) {
+            review = "negative";
+            business.todayReviews.negative++;
+          } else if (rating <= 2.5) {
+            review = "negative";
+            business.todayReviews.negative++;
+          } else if (rating <= 3.5) {
+            review = "neutral";
+            business.todayReviews.neutral++;
+          } else if (rating <= 4.5) {
+            review = "positive";
+            business.todayReviews.positive++;
+          } else {
+            review = "excellent";
+            business.todayReviews.positive++;
+          }
+
+          business.todayClients.push({
+            time: Date.now(),
+            served: true,
+            spent: clientSpend,
+            review: review,
+            rating: rating,
+            text: getRandomReview(rating),
+          });
+
+          // Aktualizuj czystość
+          if (cleaningWorkers.length > 0) {
+            const cleanPower = cleaningWorkers.reduce(
+              (sum, w) => sum + (w.personality?.qualityMod || 1) * 5,
+              0
+            );
+            business.cleanliness = Math.min(
+              100,
+              (business.cleanliness || 100) + cleanPower
+            );
+            business.lastCleanTime = Date.now();
+          } else {
+            // Bez sprzątania - czystość spada
+            business.cleanliness = Math.max(
+              0,
+              (business.cleanliness || 100) - 0.5
+            );
+          }
+
+          // Pricing worker dostosowuje ceny
+          if (pricingWorkers.length > 0) {
+            const targetPrice = 0.5 + (business.reputation / 100) * 1.0;
+            const adjustment = (targetPrice - priceModifier) * 0.02;
+            business.priceModifier = Math.max(
+              0.5,
+              Math.min(2.0, priceModifier + adjustment)
+            );
+          }
+
+          // Marketing worker - research i kupowanie promocji
+          marketingWorkers.forEach((w) => {
+            if (
+              w.assignedBudget > 0 &&
+              (w.budgetSpent || 0) < w.assignedBudget
+            ) {
+              if (
+                !business.marketingResearchEnd ||
+                Date.now() >= business.marketingResearchEnd
+              ) {
+                const promotions = getPromotionOptions();
+                const activePromoIds = (business.activePromotions || []).map(
+                  (p) => p.id
+                );
+                const availableBudget = w.assignedBudget - (w.budgetSpent || 0);
+
+                const affordablePromos = promotions
+                  .filter(
+                    (p) =>
+                      !activePromoIds.includes(p.id) &&
+                      p.cost <= availableBudget
+                  )
+                  .sort((a, b) => b.clientBoost - a.clientBoost);
+
+                if (affordablePromos.length > 0) {
+                  const promo = affordablePromos[0];
+                  w.budgetSpent = (w.budgetSpent || 0) + promo.cost;
+                  if (!business.activePromotions)
+                    business.activePromotions = [];
+                  business.activePromotions.push({
+                    id: promo.id,
+                    startTime: Date.now(),
+                    endTime: Date.now() + promo.duration * 24 * 60 * 60 * 1000,
+                    boughtBy: w.name,
+                  });
+                  showToast(
+                    `📢 ${w.name} ${isEn ? "bought" : "kupił"}: ${promo.name}`
+                  );
+                }
+
+                const researchTime = (10 + Math.random() * 5) * 60 * 1000;
+                business.marketingResearchEnd = Date.now() + researchTime;
+              }
+            }
+          });
+
+          return true;
+        }
+
+        function createDayReport(business, businessIndex) {
+          const isEn = currentLang === "en";
+          const hiredWorkers = business.workers.filter((w) => w.hired);
+
+          // Oblicz pensje
+          let salariesPaid = 0;
+          let bonusesPaid = 0;
+          const workerReports = [];
+
+          hiredWorkers.forEach((w) => {
+            const dailySalary = Math.floor(
+              (w.currentSalary || w.expectedSalary || 350) / 7
+            );
+            salariesPaid += dailySalary;
+
+            const workerBonus = Math.floor(
+              ((business.todayIncome || 0) * (w.bonusPercent || 0)) /
+                100 /
+                Math.max(1, hiredWorkers.length)
+            );
+            bonusesPaid += workerBonus;
+
+            w.totalEarned = (w.totalEarned || 0) + dailySalary + workerBonus;
+            w.daysWorked = (w.daysWorked || 0) + 1;
+
+            workerReports.push({
+              name: w.name,
+              role: w.assignedRole || "service",
+              salary: dailySalary,
+              bonus: workerBonus,
+            });
+          });
+
+          // Rachunki
+          const clientsServed = business.clientsServedToday || 0;
+          const electricityCost = Math.floor(50 + clientsServed * 2);
+          const waterCost = Math.floor(20 + clientsServed * 1);
+          const gasCost = Math.floor(30 + clientsServed * 1.5);
+          const internetCost = 50;
+          const rentCost = Math.floor((business.startCost || 10000) * 0.001);
+          const totalBills =
+            electricityCost + waterCost + gasCost + internetCost + rentCost;
+
+          // Reputacja
+          const reviews = business.todayReviews || {
+            positive: 0,
+            negative: 0,
+            neutral: 0,
+          };
+          const reputationChange = reviews.positive * 2 - reviews.negative * 3;
+          business.reputation = Math.max(
+            0,
+            Math.min(100, (business.reputation || 50) + reputationChange)
+          );
+
+          // Finanse - z konta firmowego
+          const totalExpenses = salariesPaid + bonusesPaid + totalBills;
+          const dayIncome = business.todayIncome || 0;
+          const netIncome = dayIncome - totalExpenses;
+
+          // Dodaj dochód do konta firmowego
+          business.companyBalance = (business.companyBalance || 0) + dayIncome;
+
+          // Płać pensje z konta firmowego
+          const salaryExpenses = salariesPaid + bonusesPaid;
+          if (business.companyBalance >= salaryExpenses) {
+            business.companyBalance -= salaryExpenses;
+          } else {
+            const deficit = salaryExpenses - business.companyBalance;
+            business.companyBalance = 0;
+            business.debt = (business.debt || 0) + deficit;
+          }
+
+          // Rachunki - z firmowego, potem z właściciela
+          if (business.companyBalance >= totalBills) {
+            business.companyBalance -= totalBills;
+          } else {
+            const remaining = totalBills - business.companyBalance;
+            business.companyBalance = 0;
+            if (money >= remaining) {
+              money -= remaining;
+            } else {
+              debt += remaining - money;
+              money = 0;
+            }
+          }
+
+          // Zapisz raport do wyświetlenia
+          business.pendingDayReport = {
+            date: business.lastBusinessDay,
+            businessName: business.name,
+            businessIndex: businessIndex,
+            clients: clientsServed,
+            income: dayIncome,
+            reviews: reviews,
+            reputationChange: reputationChange,
+            newReputation: business.reputation,
+            workers: workerReports,
+            salariesPaid: salariesPaid,
+            bonusesPaid: bonusesPaid,
+            bills: {
+              electricity: electricityCost,
+              water: waterCost,
+              gas: gasCost,
+              internet: internetCost,
+              rent: rentCost,
+              total: totalBills,
+            },
+            netIncome: netIncome,
+            companyBalance: business.companyBalance,
+          };
+
+          business.totalIncome = (business.totalIncome || 0) + dayIncome;
+          business.totalExpenses =
+            (business.totalExpenses || 0) + totalExpenses;
+
+          saveState();
+        }
+
+        function checkPendingBusinessReports() {
+          const businesses = getBusinesses();
+          businesses.forEach((business, index) => {
+            if (business.pendingDayReport) {
+              showDayReport(business.pendingDayReport);
+              business.pendingDayReport = null;
+            }
+          });
+          saveBusinesses(businesses);
+        }
+
+        // Uruchom co 30 sekund
+        setInterval(processBusinessRealtime, 30000);
+        // Aktualizuj promocje co minutę
+        setInterval(updateBusinessPromotions, 60000);
+
+        function processAutomaticBusinessDays() {
+          // Stara funkcja - teraz używamy processBusinessRealtime
+          processBusinessRealtime();
         }
 
         function processBusinessDayAuto(businessIndex) {
@@ -17719,7 +19029,100 @@
           const marketingWorkers = hiredWorkers.filter(
             (w) => w.assignedRole === "marketing"
           );
+          const cleaningWorkers = hiredWorkers.filter(
+            (w) => w.assignedRole === "cleaning"
+          );
+          const pricingWorkers = hiredWorkers.filter(
+            (w) => w.assignedRole === "pricing"
+          );
           const ownerWorking = business.ownerWorking || false;
+
+          // ========== CZYSTOŚĆ - spada z czasem ==========
+          const lastClean = business.lastCleanTime || Date.now();
+          const hoursSinceClean = (Date.now() - lastClean) / (60 * 60 * 1000);
+          let cleanliness = business.cleanliness || 100;
+
+          // Czystość spada o 2% na godzinę
+          cleanliness = Math.max(0, cleanliness - hoursSinceClean * 2);
+
+          // Cleaning workers przywracają czystość
+          if (cleaningWorkers.length > 0) {
+            const cleaningPower = cleaningWorkers.reduce((sum, w) => {
+              return sum + (w.personality?.qualityMod || 1) * 20;
+            }, 0);
+            cleanliness = Math.min(100, cleanliness + cleaningPower);
+            business.lastCleanTime = Date.now();
+          }
+          business.cleanliness = cleanliness;
+
+          // ========== PRICING - dostosowuje ceny ==========
+          let priceModifier = business.priceModifier || 1.0;
+          if (pricingWorkers.length > 0 && business.reputation !== undefined) {
+            // Wysoka reputacja = można podnieść ceny
+            // Niska reputacja = trzeba obniżyć
+            const targetPrice = 0.5 + (business.reputation / 100) * 1.0; // 0.5-1.5
+            const pricingSkill = pricingWorkers[0].personality?.qualityMod || 1;
+            // Powoli dostosowuj cenę w kierunku targetPrice
+            const adjustment =
+              (targetPrice - priceModifier) * 0.1 * pricingSkill;
+            priceModifier = Math.max(
+              0.5,
+              Math.min(2.0, priceModifier + adjustment)
+            );
+            business.priceModifier = priceModifier;
+          }
+
+          // ========== MARKETING - automatycznie kupuje promocje ==========
+          marketingWorkers.forEach((w) => {
+            if (
+              w.assignedBudget > 0 &&
+              (w.budgetSpent || 0) < w.assignedBudget
+            ) {
+              const availableBudget = w.assignedBudget - (w.budgetSpent || 0);
+
+              // Sprawdź czy kończy się research
+              if (
+                !business.marketingResearchEnd ||
+                Date.now() >= business.marketingResearchEnd
+              ) {
+                // Research zakończony - kup promocję
+                const promotions = getPromotionOptions();
+                const activePromoIds = (business.activePromotions || []).map(
+                  (p) => p.id
+                );
+
+                // Znajdź najlepszą promocję którą można kupić
+                const affordablePromos = promotions
+                  .filter(
+                    (p) =>
+                      !activePromoIds.includes(p.id) &&
+                      p.cost <= availableBudget
+                  )
+                  .sort((a, b) => b.clientBoost - a.clientBoost); // najlepsza pierwsza
+
+                if (affordablePromos.length > 0) {
+                  const promo = affordablePromos[0];
+                  // Kup promocję z budżetu pracownika
+                  w.budgetSpent = (w.budgetSpent || 0) + promo.cost;
+                  if (!business.activePromotions)
+                    business.activePromotions = [];
+                  business.activePromotions.push({
+                    id: promo.id,
+                    startTime: Date.now(),
+                    endTime: Date.now() + promo.duration * 24 * 60 * 60 * 1000,
+                    boughtBy: w.name,
+                  });
+                  showToast(
+                    `📢 ${w.name} ${isEn ? "bought" : "kupił"}: ${promo.name}`
+                  );
+
+                  // Rozpocznij nowy research (10-15 minut)
+                  const researchTime = (10 + Math.random() * 5) * 60 * 1000;
+                  business.marketingResearchEnd = Date.now() + researchTime;
+                }
+              }
+            }
+          });
 
           // Jeśli nikt nie obsługuje - firma nie działa
           if (serviceWorkers.length === 0 && !ownerWorking) {
@@ -17818,22 +19221,40 @@
 
           // ========== OBSŁUŻENI KLIENCI ==========
           for (let i = 0; i < servedClients; i++) {
+            // Dochód zależy od ceny
             const clientSpend = Math.floor(
-              business.avgIncome * avgQuality * (0.5 + Math.random())
+              business.avgIncome *
+                avgQuality *
+                priceModifier *
+                (0.5 + Math.random())
             );
             dayIncome += clientSpend;
 
             const madeError = Math.random() < avgErrorRate;
 
+            // Wpływ czystości na opinie
+            const cleanlinessEffect =
+              cleanliness < 30 ? -0.3 : cleanliness < 60 ? -0.1 : 0.1;
+
+            // Wpływ ceny na opinie (wysokie ceny = więcej narzekań)
+            const priceEffect =
+              priceModifier > 1.3 ? -0.15 : priceModifier < 0.8 ? 0.1 : 0;
+
             if (madeError) {
               if (Math.random() < 0.7) negativeReviews++;
             } else {
-              const positiveChance = 0.3 + (avgQuality - 1) * 0.4;
+              const positiveChance =
+                0.3 + (avgQuality - 1) * 0.4 + cleanlinessEffect + priceEffect;
               if (Math.random() < positiveChance) {
                 positiveReviews++;
-              } else if (Math.random() < 0.05) {
+              } else if (Math.random() < 0.05 - cleanlinessEffect) {
                 negativeReviews++;
               }
+            }
+
+            // Brudno = dodatkowe złe opinie
+            if (cleanliness < 40 && Math.random() < 0.3) {
+              negativeReviews++;
             }
           }
 
@@ -18002,20 +19423,25 @@
         function autoGenerateCandidates() {
           const businesses = getBusinesses();
           const now = Date.now();
-          const FIVE_MIN_MS = 5 * 60 * 1000; // 5 minut
+          const TWO_MIN_MS = 2 * 60 * 1000; // 2 minuty
           let anyGenerated = false;
           const t = translations[currentLang] || translations.en;
           const isEn = currentLang === "en";
 
           businesses.forEach((business, index) => {
             const lastGen = business.lastCandidateGen || 0;
+            const timeSinceLastGen = now - lastGen;
 
-            if (now - lastGen >= FIVE_MIN_MS) {
+            // Oblicz ile generacji pominęliśmy (gdy strona była wyłączona)
+            const missedGenerations = Math.floor(timeSinceLastGen / TWO_MIN_MS);
+
+            if (missedGenerations >= 1) {
               // Sprawdź ile jest kandydatów (nie zatrudnionych)
               const candidates = business.workers.filter((w) => !w.hired);
 
-              // Generuj nowych jeśli mniej niż 3 kandydatów
-              if (candidates.length < 3) {
+              // Generuj nowych jeśli mniej niż 5 kandydatów (max)
+              const maxCandidates = 5;
+              if (candidates.length < maxCandidates) {
                 const positions = [
                   "manager",
                   "senior",
@@ -18025,7 +19451,12 @@
                   "junior",
                   "intern",
                 ];
-                const toGenerate = 3 - candidates.length;
+                // Generuj proporcjonalnie do pominiętych generacji, max 3 na raz
+                const toGenerate = Math.min(
+                  3,
+                  maxCandidates - candidates.length,
+                  missedGenerations
+                );
 
                 for (let i = 0; i < toGenerate; i++) {
                   const pos =
@@ -18033,14 +19464,14 @@
                   business.workers.push(generateWorker(pos));
                 }
 
-                anyGenerated = true;
-                showToast(
-                  `📋 ${business.name}: ${
-                    isEn
-                      ? "New candidates available!"
-                      : "Nowi kandydaci dostępni!"
-                  }`
-                );
+                if (toGenerate > 0) {
+                  anyGenerated = true;
+                  showToast(
+                    `📋 ${business.name}: ${toGenerate} ${
+                      isEn ? "new candidates!" : "nowych kandydatów!"
+                    }`
+                  );
+                }
               }
 
               business.lastCandidateGen = now;
@@ -18052,11 +19483,11 @@
           }
         }
 
-        // Sprawdzaj kandydatów co minutę
+        // Sprawdzaj kandydatów co minutę (generacja co 2 minuty)
         setInterval(autoGenerateCandidates, 60000);
 
-        // Sprawdź od razu przy starcie (po 5 sekundach)
-        setTimeout(autoGenerateCandidates, 5000);
+        // Sprawdź od razu przy starcie (po 3 sekundach) - nadrobi zaległości
+        setTimeout(autoGenerateCandidates, 3000);
 
         // Sprawdź od razu przy starcie
         setTimeout(processAutomaticBusinessDays, 2000);
