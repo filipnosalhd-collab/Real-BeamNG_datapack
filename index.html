@@ -5305,6 +5305,7 @@
 
         // ==================== STAN GRY ====================
         let money = 1500;
+        let unreadNotifications = 0; // Licznik nieprzeczytanych powiadomień online
         // Kod karty - globalny dla urządzenia (nie per save)
         let cardCode = localStorage.getItem("beamng_device_card_code");
         if (!cardCode) {
@@ -7845,8 +7846,15 @@
         function updateNotificationBadge() {
           const badge = document.getElementById("notificationBadge");
           if (badge) {
-            badge.textContent = unreadNotifications;
-            badge.style.display = unreadNotifications > 0 ? "flex" : "none";
+            // Połącz online i worker notifications
+            const workerNotifs = getWorkerNotifications
+              ? getWorkerNotifications()
+              : [];
+            const workerUnread = workerNotifs.filter((n) => !n.read).length;
+            const total = unreadNotifications + workerUnread;
+
+            badge.textContent = total > 99 ? "99+" : total;
+            badge.style.display = total > 0 ? "flex" : "none";
           }
         }
 
@@ -17968,7 +17976,8 @@
           if (!save) return [];
           const modeKey =
             gameMode === "reallife" ? "realLifeData" : "beamngData";
-          return save[modeKey]?.workerNotifications || [];
+          if (!save[modeKey]) return [];
+          return save[modeKey].workerNotifications || [];
         }
 
         function saveWorkerNotifications(notifications) {
@@ -17978,7 +17987,13 @@
             gameMode === "reallife" ? "realLifeData" : "beamngData";
           if (!save[modeKey]) save[modeKey] = {};
           save[modeKey].workerNotifications = notifications;
-          localStorage.setItem("beamng_saves", JSON.stringify(saves));
+
+          // Zapisz cały obiekt saves
+          try {
+            localStorage.setItem("beamng_saves", JSON.stringify(saves));
+          } catch (e) {
+            console.error("Error saving notifications:", e);
+          }
         }
 
         function addWorkerNotification(
@@ -18163,18 +18178,8 @@
         }
 
         function updateWorkerNotificationBadge() {
-          const notifications = getWorkerNotifications();
-          const unread = notifications.filter((n) => !n.read).length;
-          const badge = document.getElementById("notificationBadge");
-
-          if (badge) {
-            if (unread > 0) {
-              badge.style.display = "flex";
-              badge.textContent = unread > 99 ? "99+" : unread;
-            } else {
-              badge.style.display = "none";
-            }
-          }
+          // Użyj głównej funkcji updateNotificationBadge
+          updateNotificationBadge();
         }
 
         function renderWorkerNotifications() {
@@ -18184,10 +18189,28 @@
           const notifications = getWorkerNotifications();
           const isEn = currentLang === "en";
 
+          console.log("Worker notifications:", notifications);
+
           if (notifications.length === 0) {
-            container.innerHTML = `<p style="color: #888; text-align: center;">${
-              isEn ? "No notifications" : "Brak powiadomień"
-            }</p>`;
+            // Sprawdź czy są firmy
+            const businesses = getBusinesses();
+            const hasBusinesses = businesses && businesses.length > 0;
+            const hasHiredWorkers = businesses?.some((b) =>
+              b.workers?.some((w) => w.hired)
+            );
+
+            let emptyMsg = isEn ? "No notifications" : "Brak powiadomień";
+            if (!hasBusinesses) {
+              emptyMsg += isEn
+                ? "\n(Create a business first)"
+                : "\n(Najpierw stwórz firmę)";
+            } else if (!hasHiredWorkers) {
+              emptyMsg += isEn
+                ? "\n(Hire workers to get notifications)"
+                : "\n(Zatrudnij pracowników aby otrzymywać powiadomienia)";
+            }
+
+            container.innerHTML = `<p style="color: #888; text-align: center; white-space: pre-line;">${emptyMsg}</p>`;
             return;
           }
 
