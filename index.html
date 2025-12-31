@@ -2476,34 +2476,47 @@
               <span data-translate="taxInfo">Informacje o podatkach</span>
             </h4>
             <div class="tax-stat">
-              <span data-translate="taxRate">Stawka:</span>
-              <span class="price cost">500 zł / 5 min</span>
+              <span data-translate="taxRate">System:</span>
+              <span class="price" style="color: #4ade80"
+                >Podatek dzienny od pracy</span
+              >
+            </div>
+            <div class="tax-stat">
+              <span>Bazowa stawka:</span>
+              <span class="price cost">5% od zarobków</span>
+            </div>
+            <div class="tax-stat">
+              <span>Za każdą dodatkową pracę:</span>
+              <span class="price cost">+2%</span>
+            </div>
+            <div class="tax-stat">
+              <span>Maksymalna stawka:</span>
+              <span class="price cost">25%</span>
             </div>
             <div class="tax-stat">
               <span data-translate="totalPaid">Zapłacono łącznie:</span>
               <span id="totalTaxPaid">0 zł</span>
             </div>
-            <div class="tax-stat">
-              <span data-translate="nextTax">Następny podatek za:</span>
-              <span id="nextTaxTime">10:00</span>
-            </div>
           </div>
 
-          <div class="tax-toggle">
-            <div>
-              <strong data-translate="autoPay">Automatyczne płacenie</strong>
-              <p
-                style="font-size: 0.8em; color: #888"
-                data-translate="autoPayDesc"
-              >
-                Karta płaci automatycznie w tle
-              </p>
+          <div
+            style="
+              background: rgba(59, 130, 246, 0.1);
+              border: 1px solid #3b82f6;
+              padding: 15px;
+              border-radius: 10px;
+              margin: 15px 0;
+            "
+          >
+            <div style="color: #3b82f6; font-weight: bold; margin-bottom: 10px">
+              ℹ️ Jak działa nowy system?
             </div>
-            <div
-              class="toggle-switch"
-              id="autoPayToggle"
-              onclick="toggleAutoPay()"
-            ></div>
+            <p style="font-size: 0.85em; color: #aaa; margin: 0">
+              Podatek naliczany jest raz dziennie (realnie) od zarobków z pracy.
+              Im więcej razy pracujesz w ciągu dnia, tym wyższa stawka
+              podatkowa. Paragon podatkowy pojawi się gdy wejdziesz do gry
+              następnego dnia.
+            </p>
           </div>
 
           <div class="instruction-section">
@@ -9255,7 +9268,10 @@
 
         function getTodayDateString() {
           const now = new Date();
-          return `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+          return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+            2,
+            "0"
+          )}-${String(now.getDate()).padStart(2, "0")}`;
         }
 
         function getWorkTaxData() {
@@ -9294,29 +9310,7 @@
           const today = getTodayDateString();
           const data = getWorkTaxData();
 
-          // Jeśli nowy dzień - najpierw sprawdź czy jest oczekujący podatek
-          if (
-            data.lastWorkDate &&
-            data.lastWorkDate !== today &&
-            data.todayWorkCount > 0
-          ) {
-            // Oblicz podatek za poprzedni dzień
-            const taxAmount = calculateDailyTax(
-              data.todayWorkCount,
-              data.totalEarnings
-            );
-            data.pendingTaxReport = {
-              date: data.lastWorkDate,
-              workCount: data.todayWorkCount,
-              earnings: data.totalEarnings,
-              taxAmount: taxAmount,
-            };
-            // Reset na nowy dzień
-            data.todayWorkCount = 0;
-            data.totalEarnings = 0;
-          }
-
-          // Jeśli pierwszy raz dzisiaj
+          // Jeśli pierwszy raz dzisiaj lub nowy dzień
           if (data.lastWorkDate !== today) {
             data.todayWorkCount = 0;
             data.totalEarnings = 0;
@@ -9341,18 +9335,19 @@
           const data = getWorkTaxData();
           const today = getTodayDateString();
 
-          // Sprawdź czy jest oczekujący raport
+          // Jeśli jest oczekujący raport - pokaż go
           if (data.pendingTaxReport) {
             showTaxReport(data.pendingTaxReport);
             return;
           }
 
-          // Sprawdź czy poprzedni dzień miał prace i nie ma jeszcze raportu
+          // Sprawdź czy poprzedni dzień (REALNY) miał prace
           if (
             data.lastWorkDate &&
             data.lastWorkDate !== today &&
             data.todayWorkCount > 0
           ) {
+            // Oblicz podatek za poprzedni dzień
             const taxAmount = calculateDailyTax(
               data.todayWorkCount,
               data.totalEarnings
@@ -9364,7 +9359,7 @@
               taxAmount: taxAmount,
             };
 
-            // Zapisz jako oczekujący i zresetuj
+            // Zapisz raport i zresetuj liczniki
             const newData = {
               todayWorkCount: 0,
               lastWorkDate: today,
@@ -9378,9 +9373,10 @@
 
         function showTaxReport(report) {
           const isEn = currentLang === "en";
-          const taxRate = Math.floor(
-            (report.taxAmount / report.earnings) * 100
-          );
+          const taxRate =
+            report.earnings > 0
+              ? Math.floor((report.taxAmount / report.earnings) * 100)
+              : 0;
 
           let modal = document.getElementById("modalTaxReport");
           if (!modal) {
@@ -11769,54 +11765,20 @@
 
         // ==================== PODATKI ====================
         function checkMissedTaxes() {
-          const now = Date.now();
-          const elapsed = now - lastTaxTime;
-          const missedTaxes = Math.floor(elapsed / (5 * 60 * 1000)); // Co 5 minut
-
-          if (missedTaxes > 0) {
-            const totalTax = missedTaxes * 500; // 500 zł za każde 5 min
-
-            if (autoPay) {
-              if (money >= totalTax) {
-                money -= totalTax;
-                totalTaxPaid += totalTax;
-              } else {
-                const paid = money;
-                money = 0;
-                totalTaxPaid += paid;
-                addDebt(totalTax - paid);
-              }
-            } else {
-              addDebt(totalTax);
-            }
-
-            lastTaxTime = now;
-            saveState();
-          }
+          // WYŁĄCZONY - stary system podatków co 5 minut
+          // Teraz podatki są pobierane raz dziennie od zarobków z pracy
         }
 
         function startTaxTimer() {
-          setInterval(updateNextTaxDisplay, 1000);
-          setInterval(collectTax, 5 * 60 * 1000); // Co 5 minut
+          // WYŁĄCZONY - stary system podatków co 5 minut
+          // Teraz podatki są pobierane raz dziennie od zarobków z pracy
+          // setInterval(updateNextTaxDisplay, 1000);
+          // setInterval(collectTax, 5 * 60 * 1000);
         }
 
         function collectTax() {
-          if (autoPay) {
-            if (money >= 500) {
-              money -= 500;
-              totalTaxPaid += 500;
-            } else {
-              totalTaxPaid += money;
-              addDebt(500 - money);
-              money = 0;
-            }
-          } else {
-            addDebt(500);
-          }
-
-          lastTaxTime = Date.now();
-          saveState();
-          updateAllDisplays();
+          // WYŁĄCZONY - stary system
+          // Teraz używamy checkPendingTaxReport() dla podatków dziennych
         }
 
         function addDebt(amount) {
@@ -11830,24 +11792,11 @@
         }
 
         function updateNextTaxDisplay() {
-          const elapsed = Date.now() - lastTaxTime;
-          const remaining = 5 * 60 * 1000 - elapsed; // 5 minut
-
-          if (remaining > 0) {
-            const minutes = Math.floor(remaining / 60000);
-            const seconds = Math.floor((remaining % 60000) / 1000);
-            document.getElementById("nextTaxTime").textContent = `${minutes
-              .toString()
-              .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-          }
+          // WYŁĄCZONY - stary system
         }
 
         function toggleAutoPay() {
-          autoPay = !autoPay;
-          document
-            .getElementById("autoPayToggle")
-            .classList.toggle("active", autoPay);
-          saveState();
+          // WYŁĄCZONY - stary system
         }
 
         function payDebt() {
@@ -12830,11 +12779,11 @@
         }
 
         function updateTaxDisplay() {
-          document.getElementById("totalTaxPaid").textContent =
-            totalTaxPaid.toLocaleString() + " " + getCurrency();
-          document
-            .getElementById("autoPayToggle")
-            .classList.toggle("active", autoPay);
+          const totalTaxEl = document.getElementById("totalTaxPaid");
+          if (totalTaxEl) {
+            totalTaxEl.textContent =
+              totalTaxPaid.toLocaleString() + " " + getCurrency();
+          }
         }
 
         // ==================== MODALS ====================
@@ -14330,6 +14279,7 @@
             lastPaymentTime: Date.now(),
             reputation: 50, // 0-100
             insurances: [], // Dla firm ubezpieczeniowych
+            companyBalance: 0, // Konto firmowe - 30% z pracy właściciela
           };
 
           const businesses = getBusinesses();
@@ -14485,6 +14435,28 @@
             }</div>
             `
             }
+          </div>
+
+          <!-- KONTO FIRMOWE -->
+          <div style="background: linear-gradient(145deg, rgba(139,92,246,0.1), rgba(139,92,246,0.05)); border: 1px solid #8b5cf6; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div style="font-weight: bold; color: #8b5cf6;">🏦 ${
+                isEn ? "Company Account" : "Konto Firmowe"
+              }</div>
+              <div style="color: #8b5cf6; font-size: 1.3em; font-weight: bold;">${(
+                business.companyBalance || 0
+              ).toLocaleString()} ${getCurrency()}</div>
+            </div>
+            <div style="color: #888; font-size: 0.85em; margin-bottom: 10px;">
+              ${
+                isEn
+                  ? "30% of owner work goes here. Used for worker budgets."
+                  : "30% zarobków właściciela trafia tutaj. Służy do budżetów pracowników."
+              }
+            </div>
+            <button onclick="transferToCompany(${index})" style="width: 100%; padding: 10px; background: #8b5cf6; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9em;">
+              ➡️ ${isEn ? "Deposit from wallet" : "Wpłać z portfela"}
+            </button>
           </div>
 
           <!-- PROMOCJE -->
@@ -14763,6 +14735,47 @@
           business.ownerWorking = working;
           saveBusinesses(businesses);
           renderBusinessDetail(businessIndex);
+        }
+
+        // ========== KONTO FIRMOWE ==========
+
+        function transferToCompany(businessIndex) {
+          const isEn = currentLang === "en";
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
+
+          const amount = prompt(
+            isEn
+              ? `How much to deposit? (Your balance: ${money.toLocaleString()})`
+              : `Ile wpłacić? (Twoje saldo: ${money.toLocaleString()})`,
+            "1000"
+          );
+
+          if (amount === null) return;
+          const num = parseInt(amount) || 0;
+
+          if (num <= 0) {
+            showToast(isEn ? "❌ Invalid amount" : "❌ Nieprawidłowa kwota");
+            return;
+          }
+          if (num > money) {
+            showToast(isEn ? "❌ Not enough money!" : "❌ Za mało pieniędzy!");
+            return;
+          }
+
+          money -= num;
+          business.companyBalance = (business.companyBalance || 0) + num;
+
+          saveBusinesses(businesses);
+          saveState();
+          updateAllDisplays();
+          renderBusinessDetail(businessIndex);
+
+          showToast(
+            `➡️ ${
+              isEn ? "Deposited" : "Wpłacono"
+            }: ${num.toLocaleString()} ${getCurrency()}`
+          );
         }
 
         // ========== SYSTEM PROMOCJI ==========
@@ -15103,15 +15116,26 @@
           }
 
           const isEn = currentLang === "en";
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
 
           if (ownerWorkCollected > 0) {
-            money += ownerWorkCollected;
+            // 30% idzie na konto firmowe, 70% do gracza
+            const companyShare = Math.floor(ownerWorkCollected * 0.3);
+            const playerShare = ownerWorkCollected - companyShare;
+
+            money += playerShare;
+            business.companyBalance =
+              (business.companyBalance || 0) + companyShare;
+
+            saveBusinesses(businesses);
             saveState();
             updateAllDisplays();
+
             showToast(
               `✅ ${
                 isEn ? "Earned" : "Zarobiono"
-              }: ${ownerWorkCollected.toLocaleString()} ${getCurrency()}!`
+              }: ${playerShare.toLocaleString()} ${getCurrency()} | 🏢 +${companyShare.toLocaleString()}`
             );
           } else {
             showToast(
@@ -15199,6 +15223,46 @@
             optionsDiv.innerHTML = `
             <button onclick="closeModal('businessChat'); openModal('businessDetail'); renderBusinessDetail(${businessIndex});" style="padding: 12px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer;">
               ← ${t.backToBusinessBtn}
+            </button>
+          `;
+            return;
+          }
+
+          // Jeśli pracownik odrzucił rolę
+          if (worker.negotiationState === "role_rejected") {
+            optionsDiv.innerHTML = `
+            <div style="background: rgba(239,68,68,0.1); border: 1px solid #ef4444; padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center; color: #ef4444;">
+              ⚠️ ${
+                isEn
+                  ? "Worker rejected the proposed role"
+                  : "Pracownik odrzucił proponowaną rolę"
+              }
+            </div>
+            <button onclick="worker.negotiationState = 'initial'; worker.chatHistory = []; continueWorkerNegotiation(${businessIndex}, '${workerId}')" style="padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+              🔄 ${isEn ? "Try different role" : "Spróbuj inną rolę"}
+            </button>
+            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'reject')" style="padding: 10px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; width: 100%;">
+              ❌ ${isEn ? "End negotiations" : "Zakończ negocjacje"}
+            </button>
+          `;
+            return;
+          }
+
+          // Jeśli pracownik odrzucił budżet
+          if (worker.negotiationState === "budget_rejected") {
+            optionsDiv.innerHTML = `
+            <div style="background: rgba(239,68,68,0.1); border: 1px solid #ef4444; padding: 10px; border-radius: 8px; margin-bottom: 10px; text-align: center; color: #ef4444;">
+              ⚠️ ${
+                isEn
+                  ? "Worker rejected the proposed budget"
+                  : "Pracownik odrzucił proponowany budżet"
+              }
+            </div>
+            <button onclick="worker.negotiationState = 'budget_negotiation'; continueWorkerNegotiation(${businessIndex}, '${workerId}')" style="padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+              🔄 ${isEn ? "Offer different budget" : "Zaproponuj inny budżet"}
+            </button>
+            <button onclick="respondToWorker(${businessIndex}, '${workerId}', 'reject')" style="padding: 10px; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; width: 100%;">
+              ❌ ${isEn ? "End negotiations" : "Zakończ negocjacje"}
             </button>
           `;
             return;
@@ -15373,6 +15437,7 @@
             // Negocjacja budżetu dla ról które go potrzebują
             const expectedBudget = worker.expectedBudget || 1000;
             const currentBudget = worker.offerBudget || expectedBudget;
+            const companyBalance = business.companyBalance || 0;
 
             // Odśwież wiadomości
             messagesDiv.innerHTML = worker.chatHistory
@@ -15400,8 +15465,8 @@
               <div style="color: #888; font-size: 0.85em; margin-bottom: 10px;">
                 ${
                   isEn
-                    ? "This worker needs a budget for their role. The budget comes from your account and can only be spent on their assigned tasks."
-                    : "Ten pracownik potrzebuje budżetu do swojej roli. Budżet pochodzi z Twojego konta i może być wydany tylko na przypisane zadania."
+                    ? "This worker needs a budget for their role. The budget comes from the company account."
+                    : "Ten pracownik potrzebuje budżetu do swojej roli. Budżet pochodzi z konta firmowego."
                 }
               </div>
               <div style="margin-bottom: 10px;">
@@ -15410,12 +15475,24 @@
                 } (${
               isEn ? "suggested" : "sugerowane"
             }: ${expectedBudget})</label>
-                <input type="number" id="offerBudget" value="${currentBudget}" min="0" max="50000"
+                <input type="number" id="offerBudget" value="${Math.min(
+                  currentBudget,
+                  companyBalance
+                )}" min="0" max="${companyBalance}"
                        style="width: 100%; padding: 10px; background: #333; border: 1px solid #555; border-radius: 5px; color: white; margin-top: 5px;">
               </div>
-              <div style="color: #666; font-size: 0.8em;">💰 ${
-                isEn ? "Your balance" : "Twoje saldo"
-              }: ${money.toLocaleString()} ${getCurrency()}</div>
+              <div style="color: #8b5cf6; font-size: 0.9em;">🏦 ${
+                isEn ? "Company account" : "Konto firmowe"
+              }: ${companyBalance.toLocaleString()} ${getCurrency()}</div>
+              ${
+                companyBalance < expectedBudget
+                  ? `<div style="color: #f59e0b; font-size: 0.8em; margin-top: 5px;">⚠️ ${
+                      isEn
+                        ? "Work in your business to earn more!"
+                        : "Pracuj w swojej firmie żeby zarobić więcej!"
+                    }</div>`
+                  : ""
+              }
             </div>
             <button onclick="confirmBudget(${businessIndex}, '${workerId}')" style="padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
               ✅ ${isEn ? "Confirm budget" : "Potwierdź budżet"}
@@ -15649,14 +15726,21 @@
 
           const budgetAmount =
             parseInt(document.getElementById("offerBudget")?.value) || 0;
+          const companyBalance = business.companyBalance || 0;
 
-          if (budgetAmount > money) {
+          // Budżet płacony z konta firmowego
+          if (budgetAmount > companyBalance) {
             showToast(
               isEn
-                ? "❌ Not enough money for this budget!"
-                : "❌ Nie stać Cię na taki budżet!"
+                ? "❌ Not enough on company account! Work to earn more."
+                : "❌ Za mało na koncie firmowym! Pracuj żeby zarobić więcej."
             );
             return;
+          }
+
+          // Pobierz z konta firmowego
+          if (budgetAmount > 0) {
+            business.companyBalance = companyBalance - budgetAmount;
           }
 
           worker.assignedBudget = budgetAmount;
@@ -15670,8 +15754,36 @@
               : `Przyznaję Ci budżet w wysokości ${budgetAmount} ${getCurrency()}.`,
           });
 
-          // Reakcja pracownika
+          // Reakcja pracownika - może odmówić przy za niskim budżecie
           const expectedBudget = worker.expectedBudget || 1000;
+
+          // Sprawdź czy pracownik odmówi
+          if (budgetAmount < expectedBudget * 0.3) {
+            // Bardzo niski budżet - duża szansa na odmowę
+            const rejectChance = 0.7 - budgetAmount / expectedBudget;
+            if (Math.random() < rejectChance) {
+              // Zwróć pieniądze na konto firmowe
+              business.companyBalance =
+                (business.companyBalance || 0) + budgetAmount;
+              worker.assignedBudget = 0;
+
+              worker.chatHistory.push({
+                from: "worker",
+                text: isEn
+                  ? `I'm sorry, but ${budgetAmount} ${getCurrency()} is too little. I need at least ${Math.floor(
+                      expectedBudget * 0.5
+                    )} to do my job properly. I can't accept this.`
+                  : `Przepraszam, ale ${budgetAmount} ${getCurrency()} to za mało. Potrzebuję minimum ${Math.floor(
+                      expectedBudget * 0.5
+                    )} żeby dobrze wykonywać pracę. Nie mogę tego przyjąć.`,
+              });
+              worker.negotiationState = "budget_rejected";
+              saveBusinesses(businesses);
+              continueWorkerNegotiation(businessIndex, workerId);
+              return;
+            }
+          }
+
           if (budgetAmount >= expectedBudget) {
             worker.chatHistory.push({
               from: "worker",
@@ -15758,8 +15870,6 @@
           const roles = getWorkerRoles();
           const roleInfo = roles[selectedRole];
 
-          worker.assignedRole = selectedRole;
-
           // Wiadomość gracza
           worker.chatHistory.push({
             from: "player",
@@ -15768,7 +15878,39 @@
               : `Chciałbym, żebyś pracował jako ${roleInfo.name}.`,
           });
 
-          // Reakcja pracownika
+          // Sprawdź czy pracownik się zgodzi na rolę
+          // Szansa na odmowę jeśli rola inna niż preferowana
+          if (selectedRole !== worker.preferredRole) {
+            const acceptChance =
+              0.6 + (worker.personality?.agreeableness || 0) * 0.3; // 60-90% szans
+            if (Math.random() > acceptChance) {
+              // Odmowa!
+              worker.chatHistory.push({
+                from: "worker",
+                text: isEn
+                  ? `I'm sorry, but I really want to work in ${
+                      roles[worker.preferredRole].name
+                    }. I can't accept this role.`
+                  : `Przepraszam, ale naprawdę chcę pracować jako ${
+                      roles[worker.preferredRole].name
+                    }. Nie mogę przyjąć tej roli.`,
+              });
+              worker.chatHistory.push({
+                from: "worker",
+                text: isEn
+                  ? "Would you reconsider? Or maybe we should part ways..."
+                  : "Czy mógłbyś to przemyśleć? Albo może nasze drogi powinny się rozejść...",
+              });
+              worker.negotiationState = "role_rejected";
+              saveBusinesses(businesses);
+              continueWorkerNegotiation(businessIndex, workerId);
+              return;
+            }
+          }
+
+          worker.assignedRole = selectedRole;
+
+          // Reakcja pracownika - zgoda
           if (selectedRole === worker.preferredRole) {
             worker.chatHistory.push({
               from: "worker",
@@ -16605,10 +16747,12 @@
           const isEn = currentLang === "en";
 
           const currentBudget = worker.assignedBudget || 0;
+          const companyBalance = business.companyBalance || 0;
+
           const newBudget = prompt(
             isEn
-              ? `Enter new budget (current: ${currentBudget}, your money: ${money}):`
-              : `Podaj nowy budżet (obecny: ${currentBudget}, twoje pieniądze: ${money}):`,
+              ? `Enter new budget (current: ${currentBudget}, company account: ${companyBalance}):`
+              : `Podaj nowy budżet (obecny: ${currentBudget}, konto firmowe: ${companyBalance}):`,
             currentBudget
           );
 
@@ -16617,22 +16761,28 @@
           const budgetNum = parseInt(newBudget) || 0;
           const difference = budgetNum - currentBudget;
 
-          if (difference > money) {
-            showToast(isEn ? "❌ Not enough money!" : "❌ Za mało pieniędzy!");
+          // Budżet płacony z konta firmowego
+          if (difference > companyBalance) {
+            showToast(
+              isEn
+                ? "❌ Not enough on company account!"
+                : "❌ Za mało na koncie firmowym!"
+            );
             return;
           }
 
           if (difference > 0) {
-            money -= difference;
+            business.companyBalance = companyBalance - difference;
           } else {
-            // Zwrot niewydanego budżetu
+            // Zwrot niewydanego budżetu na konto firmowe
             const unusedOld = currentBudget - (worker.budgetSpent || 0);
             const unusedNew = Math.max(
               0,
               budgetNum - (worker.budgetSpent || 0)
             );
             const refund = unusedOld - unusedNew;
-            if (refund > 0) money += refund;
+            if (refund > 0)
+              business.companyBalance = (business.companyBalance || 0) + refund;
           }
 
           worker.assignedBudget = budgetNum;
@@ -17018,6 +17168,14 @@
                 ${isEn ? "NET PROFIT" : "ZYSK NETTO"}: ${
             report.netIncome >= 0 ? "+" : ""
           }${report.netIncome.toLocaleString()} ${getCurrency()}
+              </div>
+              <div style="margin-top: 10px; padding: 10px; background: rgba(139,92,246,0.1); border-radius: 8px;">
+                <div style="color: #8b5cf6; font-weight: bold;">🏦 ${
+                  isEn ? "Company Balance" : "Konto Firmowe"
+                }</div>
+                <div style="font-size: 1.2em; color: #8b5cf6; font-weight: bold;">${(
+                  report.companyBalance || 0
+                ).toLocaleString()} ${getCurrency()}</div>
               </div>
             </div>
             
@@ -17742,18 +17900,58 @@
             (business.totalExpenses || 0) + totalExpenses;
           business.lastDayProcessed = Date.now();
 
-          if (money + netIncome < 0) {
-            business.debt = (business.debt || 0) + Math.abs(netIncome);
+          // Dochód z klientów idzie na konto firmowe
+          business.companyBalance = (business.companyBalance || 0) + dayIncome;
+
+          // Pensje i prowizje płacone z konta firmowego
+          const salaryExpenses = salariesPaid + bonusesPaid;
+          if (business.companyBalance >= salaryExpenses) {
+            business.companyBalance -= salaryExpenses;
+          } else {
+            // Nie starcza na pensje - dług firmy
+            const deficit = salaryExpenses - business.companyBalance;
+            business.companyBalance = 0;
+            business.debt = (business.debt || 0) + deficit;
             showToast(
               `⚠️ ${business.name}: ${
                 isEn
-                  ? "Not enough money! Debt increased."
-                  : "Brak pieniędzy! Dług wzrósł."
+                  ? "Not enough for salaries! Debt increased."
+                  : "Brak na pensje! Dług wzrósł."
               }`
             );
           }
 
-          money += netIncome;
+          // Rachunki - najpierw z konta firmowego, potem z konta właściciela
+          let billsPaidFromCompany = 0;
+          let billsPaidFromOwner = 0;
+
+          if (business.companyBalance >= totalBills) {
+            business.companyBalance -= totalBills;
+            billsPaidFromCompany = totalBills;
+          } else {
+            // Częściowo z firmy, reszta z konta właściciela
+            billsPaidFromCompany = business.companyBalance;
+            const remaining = totalBills - billsPaidFromCompany;
+            business.companyBalance = 0;
+
+            if (money >= remaining) {
+              money -= remaining;
+              billsPaidFromOwner = remaining;
+            } else {
+              // Właściciel też nie ma - dług
+              billsPaidFromOwner = money;
+              const unpaid = remaining - money;
+              money = 0;
+              debt += unpaid;
+              showToast(
+                `⚠️ ${business.name}: ${
+                  isEn
+                    ? "Bills unpaid! Personal debt increased."
+                    : "Rachunki nieopłacone! Dług osobisty wzrósł."
+                }`
+              );
+            }
+          }
 
           saveBusinesses(businesses);
           saveState();
@@ -17791,6 +17989,7 @@
               total: totalBills,
             },
             netIncome: netIncome,
+            companyBalance: business.companyBalance,
             businessIndex: businessIndex,
           });
         }
