@@ -12584,11 +12584,14 @@
 
         // ==================== MODALS ====================
         function openModal(type) {
-          document
-            .getElementById(
-              "modal" + type.charAt(0).toUpperCase() + type.slice(1)
-            )
-            .classList.add("active");
+          const modal = document.getElementById(
+            "modal" + type.charAt(0).toUpperCase() + type.slice(1)
+          );
+          if (!modal) {
+            console.warn("Modal not found:", type);
+            return;
+          }
+          modal.classList.add("active");
 
           if (type === "card") updateCardDisplay();
           if (type === "tax") {
@@ -12647,11 +12650,12 @@
         }
 
         function closeModal(type) {
-          document
-            .getElementById(
-              "modal" + type.charAt(0).toUpperCase() + type.slice(1)
-            )
-            .classList.remove("active");
+          const modal = document.getElementById(
+            "modal" + type.charAt(0).toUpperCase() + type.slice(1)
+          );
+          if (modal) {
+            modal.classList.remove("active");
+          }
         }
 
         function resetUploadForm(type) {
@@ -13450,9 +13454,8 @@
           // Oczekiwane wyniki - REALISTYCZNE (zależne od roli)
           let expectedPerformance;
           if (preferredRole === "service") {
-            expectedPerformance = Math.floor(
-              10 + personality.productivityMod * 8
-            ); // 10-18 klientów
+            const prodMod = personality.productivityMod || 1;
+            expectedPerformance = Math.floor(10 + prodMod * 8); // 10-18 klientów
           } else {
             expectedPerformance = 0; // Role inne niż obsługa nie obsługują klientów
           }
@@ -14601,7 +14604,7 @@
               .join("")}
           </div>
           
-          <button onclick="closeModal('modalPromotions'); renderBusinessDetail(${businessIndex});" style="width: 100%; padding: 12px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 15px;">
+          <button onclick="document.getElementById('modalPromotions').style.display='none'; openModal('businessDetail'); renderBusinessDetail(${businessIndex});" style="width: 100%; padding: 12px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 15px;">
             ← ${isEn ? "Back" : "Wróć"}
           </button>
         `;
@@ -15580,11 +15583,12 @@
 
             // Tylko dla obsługi klientów podaj wydajność
             if (selectedRole === "service") {
+              const perf = worker.expectedPerformance || 15;
               worker.chatHistory.push({
                 from: "worker",
                 text: isEn
-                  ? `I can handle about ${worker.expectedPerformance} clients per day.`
-                  : `Mogę obsłużyć około ${worker.expectedPerformance} klientów dziennie.`,
+                  ? `I can handle about ${perf} clients per day.`
+                  : `Mogę obsłużyć około ${perf} klientów dziennie.`,
               });
             }
 
@@ -16024,6 +16028,9 @@
           const business = businesses[businessIndex];
           const worker = business.workers.find((w) => w.id === workerId);
           if (!worker || !worker.hired) return;
+          const isEn = currentLang === "en";
+          const roles = getWorkerRoles();
+          const positions = getWorkerPositions();
 
           currentBusinessChat = {
             type: "worker_talk",
@@ -16035,41 +16042,225 @@
           closeModal("businessDetail");
           openModal("businessChat");
 
-          document.getElementById(
-            "businessChatTitle"
-          ).textContent = `💬 Rozmowa z ${worker.name}`;
+          const titleEl = document.getElementById("businessChatTitle");
+          if (titleEl)
+            titleEl.textContent = `💬 ${isEn ? "Talk with" : "Rozmowa z"} ${
+              worker.name
+            }`;
 
           const messagesDiv = document.getElementById("businessChatMessages");
           const optionsDiv = document.getElementById("businessChatOptions");
+          if (!messagesDiv || !optionsDiv) return;
 
           const satisfaction = worker.satisfaction || 100;
           const satEmoji =
             satisfaction > 70 ? "😊" : satisfaction > 40 ? "😐" : "😞";
+          const roleInfo =
+            roles[worker.assignedRole || "service"] || roles.service;
+          const workerPosition = worker.position || "regular";
+          const posInfo = positions[workerPosition] || positions.regular;
+          const canReduce =
+            worker.canReduceSalary || worker.contractType === "performance";
 
           messagesDiv.innerHTML = `
           <div style="margin-bottom: 12px;">
-            <div style="display: inline-block; max-width: 80%; padding: 10px 15px; border-radius: 15px; background: #333;">
-              ${satEmoji} Cześć szefie! W czym mogę pomóc?
+            <div style="display: inline-block; max-width: 85%; padding: 10px 15px; border-radius: 15px; background: #333;">
+              ${satEmoji} ${
+            isEn
+              ? "Hi boss! How can I help?"
+              : "Cześć szefie! W czym mogę pomóc?"
+          }
             </div>
           </div>
           <div style="margin-bottom: 12px;">
-            <div style="display: inline-block; max-width: 80%; padding: 10px 15px; border-radius: 15px; background: #333;">
-              Moje obecne warunki: ${
-                worker.currentSalary
-              } ${getCurrency()}/tyg + ${worker.bonusPercent}% prowizji.
-              <br>Satysfakcja: ${satisfaction}%
+            <div style="display: inline-block; max-width: 85%; padding: 10px 15px; border-radius: 15px; background: #333;">
+              <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #444;">
+                <strong>${
+                  isEn ? "My current terms" : "Moje obecne warunki"
+                }:</strong>
+              </div>
+              <div style="display: grid; gap: 5px; font-size: 0.9em;">
+                <div>👔 ${
+                  isEn ? "Position" : "Stanowisko"
+                }: <span style="color: #f59e0b;">${posInfo.name}</span></div>
+                <div>${roleInfo.icon} ${
+            isEn ? "Role" : "Rola"
+          }: <span style="color: #3b82f6;">${roleInfo.name}</span></div>
+                <div>💰 ${
+                  isEn ? "Salary" : "Pensja"
+                }: <span style="color: #4ade80;">${
+            worker.currentSalary
+          } ${getCurrency()}/${isEn ? "wk" : "tyg"}</span></div>
+                <div>📊 ${
+                  isEn ? "Commission" : "Prowizja"
+                }: <span style="color: #8b5cf6;">${
+            worker.bonusPercent
+          }%</span></div>
+                <div>📝 ${
+                  isEn ? "Contract" : "Umowa"
+                }: <span style="color: #888;">${
+            worker.contractType === "performance"
+              ? isEn
+                ? "Performance-based"
+                : "Zależna od wyników"
+              : isEn
+              ? "Fixed"
+              : "Stała"
+          }</span></div>
+                ${
+                  worker.assignedBudget > 0
+                    ? `<div>💵 ${
+                        isEn ? "Budget" : "Budżet"
+                      }: <span style="color: #f59e0b;">${
+                        worker.assignedBudget - (worker.budgetSpent || 0)
+                      } / ${
+                        worker.assignedBudget
+                      } ${getCurrency()}</span></div>`
+                    : ""
+                }
+                <div>😊 ${
+                  isEn ? "Satisfaction" : "Satysfakcja"
+                }: <span style="color: ${
+            satisfaction > 70
+              ? "#4ade80"
+              : satisfaction > 40
+              ? "#f59e0b"
+              : "#ef4444"
+          };">${satisfaction}%</span></div>
+                <div>📅 ${isEn ? "Days worked" : "Dni pracy"}: ${
+            worker.daysWorked || 0
+          }</div>
+              </div>
             </div>
           </div>
         `;
 
+          // Dostępne awanse
+          const positionOrder = [
+            "intern",
+            "junior",
+            "regular",
+            "senior",
+            "manager",
+          ];
+          const currentPosIndex = positionOrder.indexOf(workerPosition);
+          const canPromote =
+            currentPosIndex >= 0 && currentPosIndex < positionOrder.length - 1;
+          const nextPosition = canPromote
+            ? positionOrder[currentPosIndex + 1]
+            : null;
+          const nextPosInfo = nextPosition ? positions[nextPosition] : null;
+
           optionsDiv.innerHTML = `
-          <button onclick="giveRaise(${businessIndex}, '${workerId}')" style="padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer;">
-            💰 Daj podwyżkę (+10%)
-          </button>
-          <button onclick="closeModal('businessChat'); openModal('businessDetail'); renderBusinessDetail(${businessIndex});" style="padding: 12px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer;">
-            ← Wróć
-          </button>
+          <div style="display: grid; gap: 8px;">
+            ${
+              canPromote
+                ? `
+              <button onclick="promoteWorker(${businessIndex}, '${workerId}')" style="padding: 12px; background: linear-gradient(145deg, #8b5cf6, #7c3aed); color: white; border: none; border-radius: 8px; cursor: pointer; text-align: left;">
+                ⬆️ ${isEn ? "Promote to" : "Awansuj na"} ${nextPosInfo.name} 
+                <span style="opacity: 0.8; font-size: 0.85em;">(+30% ${
+                  isEn ? "salary" : "pensji"
+                })</span>
+              </button>
+            `
+                : `
+              <div style="padding: 12px; background: #333; color: #666; border-radius: 8px; text-align: center;">
+                👔 ${isEn ? "Highest position" : "Najwyższe stanowisko"}
+              </div>
+            `
+            }
+            
+            <button onclick="giveRaise(${businessIndex}, '${workerId}')" style="padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; text-align: left;">
+              💰 ${isEn ? "Give raise" : "Daj podwyżkę"} (+10%)
+            </button>
+            
+            ${
+              canReduce
+                ? `
+              <button onclick="reduceSalary(${businessIndex}, '${workerId}')" style="padding: 12px; background: #f59e0b; color: white; border: none; border-radius: 8px; cursor: pointer; text-align: left;">
+                📉 ${isEn ? "Reduce salary" : "Obniż pensję"} (-10%)
+              </button>
+            `
+                : `
+              <div style="padding: 10px; background: #333; color: #666; border-radius: 8px; font-size: 0.85em; text-align: center;">
+                📝 ${
+                  isEn
+                    ? "Fixed contract - cannot reduce salary"
+                    : "Umowa stała - nie można obniżyć pensji"
+                }
+              </div>
+            `
+            }
+            
+            ${
+              roleInfo.needsBudget
+                ? `
+              <button onclick="adjustBudget(${businessIndex}, '${workerId}')" style="padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; text-align: left;">
+                💵 ${isEn ? "Adjust budget" : "Zmień budżet"}
+              </button>
+            `
+                : ""
+            }
+            
+            <button onclick="closeModal('businessChat'); openModal('businessDetail'); renderBusinessDetail(${businessIndex});" style="padding: 12px; background: #333; color: white; border: none; border-radius: 8px; cursor: pointer;">
+              ← ${isEn ? "Back" : "Wróć"}
+            </button>
+          </div>
         `;
+        }
+
+        function promoteWorker(businessIndex, workerId) {
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
+          const worker = business.workers.find((w) => w.id === workerId);
+          if (!worker) return;
+          const isEn = currentLang === "en";
+          const positions = getWorkerPositions();
+
+          const positionOrder = [
+            "intern",
+            "junior",
+            "regular",
+            "senior",
+            "manager",
+          ];
+          const workerPosition = worker.position || "regular";
+          const currentPosIndex = positionOrder.indexOf(workerPosition);
+
+          if (
+            currentPosIndex >= positionOrder.length - 1 ||
+            currentPosIndex === -1
+          ) {
+            showToast(
+              isEn
+                ? "❌ Already at highest position!"
+                : "❌ Już na najwyższym stanowisku!"
+            );
+            return;
+          }
+
+          const newPosition = positionOrder[currentPosIndex + 1];
+          const newPosInfo = positions[newPosition];
+
+          worker.position = newPosition;
+          worker.positionName = newPosInfo.name;
+          worker.currentSalary = Math.floor(worker.currentSalary * 1.3); // +30% za awans
+          worker.currentDailySalary = Math.floor(worker.currentSalary / 7);
+          worker.satisfaction = Math.min(
+            100,
+            (worker.satisfaction || 100) + 25
+          );
+
+          recalculateBusinessExpenses(businessIndex);
+          saveBusinesses(businesses);
+          saveState();
+
+          showToast(
+            `⬆️ ${worker.name} ${isEn ? "promoted to" : "awansowany na"} ${
+              newPosInfo.name
+            }!`
+          );
+          talkToWorker(businessIndex, workerId);
         }
 
         function giveRaise(businessIndex, workerId) {
@@ -16077,8 +16268,10 @@
           const business = businesses[businessIndex];
           const worker = business.workers.find((w) => w.id === workerId);
           if (!worker) return;
+          const isEn = currentLang === "en";
 
           worker.currentSalary = Math.floor(worker.currentSalary * 1.1);
+          worker.currentDailySalary = Math.floor(worker.currentSalary / 7);
           worker.satisfaction = Math.min(
             100,
             (worker.satisfaction || 100) + 15
@@ -16089,11 +16282,117 @@
           saveState();
 
           showToast(
-            `💰 ${worker.name} dostał podwyżkę do ${worker.currentSalary}/tyg!`
+            `💰 ${worker.name} ${
+              isEn ? "got a raise to" : "dostał podwyżkę do"
+            } ${worker.currentSalary}/${isEn ? "wk" : "tyg"}!`
           );
-          closeModal("businessChat");
-          openModal("businessDetail");
-          renderBusinessDetail(businessIndex);
+          talkToWorker(businessIndex, workerId);
+        }
+
+        function reduceSalary(businessIndex, workerId) {
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
+          const worker = business.workers.find((w) => w.id === workerId);
+          if (!worker) return;
+          const isEn = currentLang === "en";
+
+          // Sprawdź czy można obniżyć
+          if (
+            !worker.canReduceSalary &&
+            worker.contractType !== "performance"
+          ) {
+            showToast(
+              isEn
+                ? "❌ Fixed contract - cannot reduce!"
+                : "❌ Umowa stała - nie można obniżyć!"
+            );
+            return;
+          }
+
+          // Pracownik może odmówić jeśli zadowolenie niskie lub dobre wyniki
+          const satisfaction = worker.satisfaction || 100;
+          if (satisfaction < 50) {
+            showToast(
+              `😠 ${worker.name}: "${
+                isEn
+                  ? "No way! I'm already underpaid!"
+                  : "Nie ma mowy! Już jestem za mało opłacany!"
+              }"`
+            );
+            worker.satisfaction = Math.max(0, satisfaction - 10);
+            saveBusinesses(businesses);
+            talkToWorker(businessIndex, workerId);
+            return;
+          }
+
+          // Obniż pensję
+          worker.currentSalary = Math.floor(worker.currentSalary * 0.9);
+          worker.currentDailySalary = Math.floor(worker.currentSalary / 7);
+          worker.satisfaction = Math.max(0, satisfaction - 20);
+
+          recalculateBusinessExpenses(businessIndex);
+          saveBusinesses(businesses);
+          saveState();
+
+          showToast(
+            `📉 ${worker.name} ${
+              isEn ? "salary reduced to" : "pensja obniżona do"
+            } ${worker.currentSalary}/${isEn ? "wk" : "tyg"}`
+          );
+          talkToWorker(businessIndex, workerId);
+        }
+
+        function adjustBudget(businessIndex, workerId) {
+          const businesses = getBusinesses();
+          const business = businesses[businessIndex];
+          const worker = business.workers.find((w) => w.id === workerId);
+          if (!worker) return;
+          const isEn = currentLang === "en";
+
+          const currentBudget = worker.assignedBudget || 0;
+          const newBudget = prompt(
+            isEn
+              ? `Enter new budget (current: ${currentBudget}, your money: ${money}):`
+              : `Podaj nowy budżet (obecny: ${currentBudget}, twoje pieniądze: ${money}):`,
+            currentBudget
+          );
+
+          if (newBudget === null) return;
+
+          const budgetNum = parseInt(newBudget) || 0;
+          const difference = budgetNum - currentBudget;
+
+          if (difference > money) {
+            showToast(isEn ? "❌ Not enough money!" : "❌ Za mało pieniędzy!");
+            return;
+          }
+
+          if (difference > 0) {
+            money -= difference;
+          } else {
+            // Zwrot niewydanego budżetu
+            const unusedOld = currentBudget - (worker.budgetSpent || 0);
+            const unusedNew = Math.max(
+              0,
+              budgetNum - (worker.budgetSpent || 0)
+            );
+            const refund = unusedOld - unusedNew;
+            if (refund > 0) money += refund;
+          }
+
+          worker.assignedBudget = budgetNum;
+          if (worker.budgetSpent > budgetNum) worker.budgetSpent = budgetNum;
+
+          saveBusinesses(businesses);
+          saveState();
+          updateAllDisplays();
+
+          showToast(
+            `💵 ${
+              isEn ? "Budget changed to" : "Budżet zmieniony na"
+            } ${budgetNum} ${getCurrency()}`
+          );
+          talkToWorker(businessIndex, workerId);
         }
 
         function fireWorker(businessIndex, workerId) {
